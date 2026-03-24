@@ -1,0 +1,1 @@
+Resumo executivo das documentações, incluindo uma visão geral do projeto, tecnologias utilizadas e instruções para configuração e execução.
