@@ -1,3 +1,25 @@
 spring:
   application:
     name: ilumina-backend
+  profiles:
+    default: dev
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+info:
+  app:
+    name: ilumina-backend
+    description: Backend da plataforma Ilumina
