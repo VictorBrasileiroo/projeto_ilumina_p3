@@ -1,0 +1,36 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs / editores
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Arquivos de ambiente
+.env
+.env.*
+!.env.example
+
+# Backend - Java / Maven / Spring
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.mvn/timing.properties
+
+# Frontend - Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.angular/
+frontend/coverage/
+
+# Arquivos temporários
+*.tmp
+*.temp
