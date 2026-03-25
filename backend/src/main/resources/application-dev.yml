@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ilumina}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ilumina_db}
+    username: ${DB_USERNAME:ilumina_user}
+    password: ${DB_PASSWORD:ilumina_pass}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -13,6 +13,12 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  sql:
+    init:
+      mode: never
 
 management:
   endpoint:
