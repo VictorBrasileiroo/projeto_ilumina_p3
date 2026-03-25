@@ -1,4 +1,4 @@
-package br.com.ilumina.controller.suport;
+package br.com.ilumina.controller.Suport;
 
 import br.com.ilumina.dto.shared.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;

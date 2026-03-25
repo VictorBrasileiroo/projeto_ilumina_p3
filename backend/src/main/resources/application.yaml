@@ -2,7 +2,7 @@ spring:
   application:
     name: ilumina-backend
   profiles:
-    default: dev
+    active: dev
 
 server:
   port: 8080
@@ -23,3 +23,7 @@ info:
   app:
     name: ilumina-backend
     description: Backend da plataforma Ilumina
+
+jwt:
+  secret: ${JWT_SECRET:secretkeyiluminabemgrandeparafacilitaroteste}
+  expiration: ${JWT_EXPIRATION:86400000}

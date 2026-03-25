@@ -21,8 +21,8 @@ public class User extends BaseEntity {
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    @Column(name = "active", nullable = false, length = 20)
+    private boolean active;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
