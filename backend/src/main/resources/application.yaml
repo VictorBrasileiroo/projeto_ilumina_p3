@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: ilumina-backend
+  profiles:
+    active: dev
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+info:
+  app:
+    name: ilumina-backend
+    description: Backend da plataforma Ilumina
+
+jwt:
+  secret: ${JWT_SECRET:secretkeyiluminabemgrandeparafacilitaroteste}
+  expiration: ${JWT_EXPIRATION:86400000}

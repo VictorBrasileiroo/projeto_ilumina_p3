@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/backend/README.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/backend/README.md" />
+              <option name="originalContent" value="Resumo executivo do backend, incluindo tecnologias utilizadas, arquitetura e principais funcionalidades implementadas.&#10;&#10;## Estrutura de Pastas e Papel de Cada Pacote&#10;&#10;A organização do código-fonte segue uma abordagem por **camada no topo**, e, na medida que os módulos começam, o código é agrupado por domínio em subpastas dentro dessas camadas. Exemplo futuro: `controller/user/`, `service/user/`, etc.&#10;&#10;- `config` → configurações do Spring, CORS, beans, OpenAPI, etc.&#10;- `controller` → endpoints REST&#10;- `service` → regras de negócio&#10;- `repository` → acesso ao banco com JPA&#10;- `entity` → entidades persistidas&#10;- `dto` → objetos de entrada e saída&#10;- `exception` → exceções e tratamento global&#10;- `security` → JWT, filtros, config de segurança&#10;- `integration` → comunicação com serviços externos, como a LLM&#10;- `mapper` → conversão entre entity e dto&#10;- `util` → helpers reutilizáveis e utilitários simples" />
+              <option name="updatedContent" value="Resumo executivo do backend, incluindo tecnologias utilizadas, arquitetura e principais funcionalidades implementadas.&#10;&#10;## Estrutura de Pastas e Papel de Cada Pacote&#10;&#10;A organização do código-fonte segue uma abordagem por **camada no topo**, e, na medida que os módulos começam, o código é agrupado por domínio em subpastas dentro dessas camadas. Exemplo futuro: `controller/user/`, `service/user/`, etc.&#10;&#10;- `config` → configurações do Spring, CORS, beans, OpenAPI, etc.&#10;- `controller` → endpoints REST&#10;- `service` → regras de negócio&#10;- `repository` → acesso ao banco com JPA&#10;- `entity` → entidades persistidas&#10;- `dto` → objetos de entrada e saída&#10;- `exception` → exceções e tratamento global&#10;- `security` → JWT, filtros, config de segurança&#10;- `integration` → comunicação com serviços externos, como a LLM&#10;- `mapper` → conversão entre entity e dto&#10;- `util` → helpers reutilizáveis e utilitários simples" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

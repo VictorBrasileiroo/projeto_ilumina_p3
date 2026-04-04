@@ -1,0 +1,1 @@
+Resumo executivo do frontend, incluindo tecnologias utilizadas, arquitetura e principais funcionalidades implementadas.
