@@ -18,10 +18,23 @@
             </set>
           </value>
         </entry>
+        <entry key="c51a816a-9e3f-48b8-96b4-cbb14d878972">
+          <value>
+            <set>
+              <option value="b80e9386-7ba6-4a94-b241-b37e99be5665" />
+              <option value="a314828a-eb2a-45f4-869f-1da74f688fb0" />
+            </set>
+          </value>
+        </entry>
       </map>
     </option>
     <pendingWorkingSetItems>
       <entry key="2af51a82-d515-467e-a1aa-1b2dc84dfee6" />
+      <entry key="c51a816a-9e3f-48b8-96b4-cbb14d878972">
+        <set>
+          <option value="file://$PROJECT_DIR$/backend/README.md" />
+        </set>
+      </entry>
     </pendingWorkingSetItems>
   </component>
 </project>
