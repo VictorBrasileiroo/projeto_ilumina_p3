@@ -58,5 +58,5 @@ pnpm-debug.log*
 
 # Local reminders (not versioned)
 docs/lembretes/
-.vscode/settings.json
+.vscode/
 backend/.env
