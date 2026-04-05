@@ -3,32 +3,43 @@ package br.com.ilumina.service.Auth;
 import br.com.ilumina.dto.auth.AuthResponse;
 import br.com.ilumina.dto.auth.LoginRequest;
 import br.com.ilumina.dto.auth.RegisterRequest;
+import br.com.ilumina.entity.Professor.Professor;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.entity.User.UserRole;
+import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.User.RoleRepository;
 import br.com.ilumina.repository.User.UserRepository;
 import br.com.ilumina.security.JwtTokenService;
-import org.apache.catalina.Role;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 public class AuthSeervice {
 
     private final UserRepository userRepository;
+    private final ProfessorRepository professorRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
 
-    public AuthSeervice(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtTokenService jwtTokenService) {
+    public AuthSeervice(
+            UserRepository userRepository,
+            ProfessorRepository professorRepository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtTokenService jwtTokenService
+    ) {
         this.userRepository = userRepository;
+        this.professorRepository = professorRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -36,7 +47,9 @@ public class AuthSeervice {
     }
 
     public AuthResponse register(RegisterRequest request){
-        if(userRepository.existsByEmail(request.email())){
+        String normalizedEmail = normalizeEmail(request.email());
+
+        if(userRepository.existsByEmail(normalizedEmail)){
             throw new IllegalArgumentException("Email já cadastrado.");
         }
 
@@ -47,58 +60,93 @@ public class AuthSeervice {
 
         User user = new User();
         user.setName(request.name());
-        user.setEmail(request.email());
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setActive(true);
         user.setRoles(Set.of(role));
 
         User savedUser = userRepository.save(user);
 
-        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                savedUser.getEmail(),
-                savedUser.getPassword(),
-                savedUser.getRoles().stream()
-                        .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority(r.getName()))
-                        .collect(Collectors.toSet())
-        );
-
-        String token = jwtTokenService.generateToken(userDetails);
-
-        return new AuthResponse(
-                token,
-                "Bearer",
-                savedUser.getId(),
-                savedUser.getName(),
-                savedUser.getEmail(),
-                savedUser.getRoles().stream().map(UserRole::getName).collect(Collectors.toSet())
-        );
+        return buildAuthResponse(savedUser);
     }
 
     public AuthResponse login(LoginRequest request){
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
+        String normalizedEmail = normalizeEmail(request.email());
 
-        User user = userRepository.findByEmail(request.email())
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(normalizedEmail, request.password()));
+
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
 
+        return buildAuthResponse(user);
+    }
 
-        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+    public AuthResponse refresh(String refreshToken) {
+        try {
+            String rawUserId = jwtTokenService.extractUserId(refreshToken);
+
+            if (rawUserId == null) {
+                throw new BadCredentialsException("Refresh token inválido.");
+            }
+
+            UUID userId = UUID.fromString(rawUserId);
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BadCredentialsException("Refresh token inválido."));
+
+            if (!user.isActive()) {
+                throw new BadCredentialsException("Usuário inativo.");
+            }
+
+            if (!jwtTokenService.isRefreshTokenValid(refreshToken, user.getEmail(), user.getId())) {
+                throw new BadCredentialsException("Refresh token inválido.");
+            }
+
+            return buildAuthResponse(user);
+        } catch (RuntimeException ex) {
+            throw new BadCredentialsException("Refresh token inválido.", ex);
+        }
+    }
+
+    private AuthResponse buildAuthResponse(User user) {
+        Set<String> roles = user.getRoles().stream()
+                .map(UserRole::getName)
+                .collect(java.util.stream.Collectors.toSet());
+
+        UUID professorId = resolveProfessorId(user.getId());
+        UUID alunoId = null;
+
+        String accessToken = jwtTokenService.generateAccessToken(
                 user.getEmail(),
-                user.getPassword(),
-                user.getRoles().stream()
-                        .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority(r.getName()))
-                        .collect(Collectors.toSet())
+                user.getId(),
+                List.copyOf(roles),
+                professorId,
+                alunoId
         );
 
-        String token = jwtTokenService.generateToken(userDetails);
+        String refreshToken = jwtTokenService.generateRefreshToken(user.getEmail(), user.getId());
 
         return new AuthResponse(
-                token,
+                accessToken,
+                refreshToken,
                 "Bearer",
                 user.getId(),
+                professorId,
+                alunoId,
                 user.getName(),
                 user.getEmail(),
-                user.getRoles().stream().map(UserRole::getName).collect(Collectors.toSet())
+                roles
         );
+    }
+
+    private UUID resolveProfessorId(UUID userId) {
+        return professorRepository.findByUserId(userId)
+                .map(Professor::getId)
+                .orElse(null);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 
     private String normalizeRole(String role) {

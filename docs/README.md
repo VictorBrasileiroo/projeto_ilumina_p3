@@ -23,18 +23,27 @@ Arquitetura:
 Feature de Professor:
 - `docs/features/2026-04-05-feature-modulo-professor-crud-inicial.md`
 
+Feature de JWT (refresh + claims):
+- `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
+
 API do modulo de Professor:
 - `docs/api/2026-04-05-api-modulo-professor.md`
+
+API de autenticacao (JWT):
+- `docs/api/2026-04-05-api-auth-jwt-refresh-claims.md`
 
 Historico de implementacao:
 - `docs/etapas/2026-03-24-01-seguranca-cors-health-apiresponse.md`
 - `docs/etapas/2026-03-25-02-modelo-usuario-auditoria-repositorios.md`
 - `docs/etapas/2026-03-25-03-seguranca-jwt-autenticacao.md`
 - `docs/etapas/2026-04-05-04-modulo-professor-crud-inicial.md`
+- `docs/etapas/2026-04-05-05-evolucao-jwt-refresh-claims.md`
 
 Guias de processo:
-- `docs/guias/01-Guia-Branches.md`
-- `docs/guias/02-Template-PR.md`
+- `docs/guias/01.Guia-Branches.md`
+- `docs/guias/02.Template-PR.md`
+- `docs/guias/03.Bloqueio-Páginas.md`
+- `docs/guias/04.Guia-Tokens-Refresh-Claims.md`
 
 ## 3. Como navegar rapido
 

@@ -38,8 +38,9 @@ Entidades:
 - `UserRole`
 
 Capacidades:
-- cadastro/login
-- emissao/validacao JWT
+- cadastro/login/refresh
+- emissao de access token + refresh token
+- claims JWT com contexto de perfil (`userId`, `roles`, `professorId`, `alunoId` quando existir)
 - carga de roles padrao (`ROLE_ADMIN`, `ROLE_PROFESSOR`, `ROLE_ALUNO`)
 
 ## 4.2 Perfil Professor (primeiro corte)
@@ -82,6 +83,11 @@ Security:
 - `CustomUserDetailsService`
 - handlers 401/403
 
+Observacoes de seguranca JWT:
+- rotas protegidas aceitam somente access token;
+- refresh token e exclusivo para renovacao em `/api/v1/auth/refresh`;
+- expiracao e configuravel por `jwt.expiration` (access) e `jwt.refresh-expiration` (refresh).
+
 Exception:
 - `GlobalExceptionHandler` com mapeamento para 400/401/403/404/409/500
 
@@ -91,6 +97,10 @@ Rotas publicas principais:
 - `/api/v1/auth/**`
 - `/api/v1/health/**`
 - `POST /api/v1/professor` (cadastro publico do primeiro corte)
+
+Contratos de autenticacao (estado atual):
+- login/register/create professor retornam `token` + `refreshToken`;
+- `POST /api/v1/auth/refresh` retorna novos tokens (rotacao de sessao).
 
 Rotas protegidas do modulo professor:
 - `GET /api/v1/professor` -> admin
@@ -135,4 +145,4 @@ Divergencia operacional atual:
 - Definir politica final de criacao de professor (publica x restrita por ambiente).
 - Iniciar modulo de relacionamento com turmas (N:N) usando `Professor` como entidade de dominio.
 - Evoluir listagem de professor com filtros e paginacao.
-- Revisar contrato de auth para padronizar payload JSON no controller de autenticacao.
+- Introduzir estrategia de revogacao de refresh token (blacklist/versionamento) para cenarios de logout forcado.

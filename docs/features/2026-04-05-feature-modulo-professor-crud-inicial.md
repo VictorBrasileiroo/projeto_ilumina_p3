@@ -101,6 +101,9 @@ Erros esperados:
 - `409 Conflict` -> email ja cadastrado
 - `500 Internal Server Error` -> falha inesperada
 
+Observacao de contrato atual:
+- alem dos dados do professor, o retorno inclui `token` (access) e `refreshToken` para login imediato.
+
 ## 5.2 GET /api/v1/professor?includeInactive=false
 
 Objetivo: listar professores.
@@ -181,12 +184,12 @@ Erros esperados:
 
 Fluxo de cadastro de professor:
 1. Tela de cadastro envia `POST /api/v1/professor` com JSON.
-2. Em sucesso (`201`), redireciona para login ou painel.
+2. Em sucesso (`201`), front recebe `token` + `refreshToken` e pode abrir sessao imediatamente.
 3. Em erro (`400`/`409`), exibe mensagens de `errors[]`.
 
 Fluxo de administracao:
 1. Admin autentica e obtem token.
-2. Front salva token conforme politica da aplicacao.
+2. Front salva access token e refresh token conforme politica da aplicacao.
 3. Front envia `Authorization: Bearer <token>` para listar, detalhar, editar e desativar.
 
 ## 7. Estado de qualidade

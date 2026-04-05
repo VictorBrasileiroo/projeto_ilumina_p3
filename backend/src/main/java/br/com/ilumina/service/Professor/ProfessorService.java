@@ -1,6 +1,7 @@
 package br.com.ilumina.service.Professor;
 
 import br.com.ilumina.dto.professor.CreateProfessorRequest;
+import br.com.ilumina.dto.professor.CreateProfessorResponse;
 import br.com.ilumina.dto.professor.ProfessorResponse;
 import br.com.ilumina.dto.professor.UpdateProfessorRequest;
 import br.com.ilumina.entity.Professor.Professor;
@@ -11,6 +12,7 @@ import br.com.ilumina.exception.ResourceNotFoundException;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.User.RoleRepository;
 import br.com.ilumina.repository.User.UserRepository;
+import br.com.ilumina.security.JwtTokenService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfessorService {
@@ -30,21 +33,24 @@ public class ProfessorService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenService jwtTokenService;
 
     public ProfessorService(
             ProfessorRepository professorRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            JwtTokenService jwtTokenService
     ) {
         this.professorRepository = professorRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenService = jwtTokenService;
     }
 
     @Transactional
-    public ProfessorResponse create(CreateProfessorRequest request) {
+    public CreateProfessorResponse create(CreateProfessorRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new DataIntegrityViolationException("Email já cadastrado.");
@@ -68,7 +74,22 @@ public class ProfessorService {
         professor.setSexo(normalizeRequired(request.sexo(), "O sexo/gênero é obrigatório."));
 
         Professor savedProfessor = professorRepository.save(professor);
-        return toResponse(savedProfessor);
+
+        Set<String> roles = savedUser.getRoles().stream()
+                .map(UserRole::getName)
+                .collect(Collectors.toSet());
+
+        String accessToken = jwtTokenService.generateAccessToken(
+                savedUser.getEmail(),
+                savedUser.getId(),
+                roles.stream().toList(),
+                savedProfessor.getId(),
+                null
+        );
+
+        String refreshToken = jwtTokenService.generateRefreshToken(savedUser.getEmail(), savedUser.getId());
+
+        return toCreateResponse(savedProfessor, accessToken, refreshToken);
     }
 
     @Transactional(readOnly = true)
@@ -179,6 +200,28 @@ public class ProfessorService {
                 professor.getSexo(),
                 user.isActive(),
                 professor.getCreatedAt()
+        );
+    }
+
+    private CreateProfessorResponse toCreateResponse(
+            Professor professor,
+            String accessToken,
+            String refreshToken
+    ) {
+        User user = professor.getUser();
+        return new CreateProfessorResponse(
+                professor.getId(),
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                professor.getDisciplina(),
+                professor.getSexo(),
+                user.isActive(),
+                professor.getCreatedAt(),
+                accessToken,
+                refreshToken,
+                "Bearer",
+                user.getRoles().stream().map(UserRole::getName).collect(Collectors.toSet())
         );
     }
 }

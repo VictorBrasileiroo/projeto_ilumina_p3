@@ -1,6 +1,7 @@
 package br.com.ilumina.controller.Professor;
 
 import br.com.ilumina.dto.professor.CreateProfessorRequest;
+import br.com.ilumina.dto.professor.CreateProfessorResponse;
 import br.com.ilumina.dto.professor.ProfessorResponse;
 import br.com.ilumina.dto.professor.UpdateProfessorRequest;
 import br.com.ilumina.dto.shared.ApiResponse;
@@ -27,13 +28,13 @@ public class ProfessorController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ProfessorResponse>> create(
+    public ResponseEntity<ApiResponse<CreateProfessorResponse>> create(
             @Valid @RequestBody CreateProfessorRequest request,
             HttpServletRequest servletRequest
     ) {
-        ProfessorResponse response = professorService.create(request);
+        CreateProfessorResponse response = professorService.create(request);
 
-        ApiResponse<ProfessorResponse> body = ApiResponse.sucess(
+        ApiResponse<CreateProfessorResponse> body = ApiResponse.sucess(
                 HttpStatus.CREATED.value(),
                 "Professor criado com sucesso.",
                 response,

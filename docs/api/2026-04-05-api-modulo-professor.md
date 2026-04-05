@@ -118,6 +118,27 @@ Regras:
 }
 ```
 
+## 4.4 CreateProfessorResponse
+
+Retorno especifico do endpoint de criacao (`POST /api/v1/professor`).
+
+```json
+{
+  "id": "0dd4f8f2-7de9-4c3a-b017-55b7be5d7af3",
+  "userId": "8af5c9c6-b6a3-40de-9ed8-1492d7e09b85",
+  "name": "Professora Maria",
+  "email": "maria@escola.com",
+  "disciplina": "Matematica",
+  "sexo": "Feminino",
+  "active": true,
+  "createdAt": "2026-04-05T10:30:00Z",
+  "token": "<jwt>",
+  "refreshToken": "<refresh-token>",
+  "type": "Bearer",
+  "roles": ["ROLE_PROFESSOR"]
+}
+```
+
 ## 5. Endpoints
 
 ## 5.1 Criar professor
@@ -143,7 +164,11 @@ Exemplo de resposta (resumo):
     "disciplina": "Matematica",
     "sexo": "Feminino",
     "active": true,
-    "createdAt": "..."
+    "createdAt": "...",
+    "token": "<jwt>",
+    "refreshToken": "<refresh-token>",
+    "type": "Bearer",
+    "roles": ["ROLE_PROFESSOR"]
   }
 }
 ```
@@ -264,7 +289,9 @@ curl -X PATCH "http://localhost:8080/api/v1/professor/{id}/deactivate" \
 ## 7. Observacoes importantes para frontend
 
 - `POST /api/v1/professor` esta aberto no estado atual.
-- Os demais endpoints exigem JWT valido.
+- O create retorna `token` (access) e `refreshToken` para login imediato.
+- Os demais endpoints exigem access token JWT valido.
+- Para renovacao de sessao, usar `POST /api/v1/auth/refresh` (ver doc de auth).
 - Em qualquer erro, prefira ler `message` e `errors[]` no envelope para exibir feedback na UI.
 - Na listagem, use `includeInactive=true` apenas em contexto administrativo.
 

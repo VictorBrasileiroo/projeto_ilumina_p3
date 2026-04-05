@@ -20,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
 
@@ -77,11 +79,43 @@ class ProfessorControllerIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.email").value("prof.um@ilumina.com"))
-                .andExpect(jsonPath("$.data.disciplina").value("Matemática"));
+                .andExpect(jsonPath("$.data.disciplina").value("Matemática"))
+                .andExpect(jsonPath("$.data.token").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.type").value("Bearer"));
 
         assertThat(userRepository.existsByEmail("prof.um@ilumina.com")).isTrue();
         assertThat(professorRepository.findByUserActiveTrueOrderByCreatedAtDesc()).hasSize(1);
     }
+
+        @Test
+        void createProfessorTokenShouldContainExpectedClaims() throws Exception {
+                CreateProfessorRequest request = new CreateProfessorRequest(
+                                "Professor Claims",
+                                "claims@ilumina.com",
+                                "123456",
+                                "Matemática",
+                                "Feminino"
+                );
+
+                MvcResult result = mockMvc.perform(post("/api/v1/professor")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isCreated())
+                                .andReturn();
+
+                JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
+                String professorId = root.path("data").path("id").asText();
+                String userId = root.path("data").path("userId").asText();
+                String token = root.path("data").path("token").asText();
+
+                JsonNode payload = decodeJwtPayload(token);
+
+                assertThat(payload.path("userId").asText()).isEqualTo(userId);
+                assertThat(payload.path("professorId").asText()).isEqualTo(professorId);
+                assertThat(payload.path("roles").isArray()).isTrue();
+                assertThat(payload.path("roles").toString()).contains("ROLE_PROFESSOR");
+        }
 
     @Test
     void createProfessorWithDuplicateEmailShouldReturnConflict() throws Exception {
@@ -102,7 +136,7 @@ class ProfessorControllerIntegrationTest {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
-    @Test
+        @Test
         void createProfessorWithProfessorRoleShouldReturnCreated() throws Exception {
         CreateProfessorRequest request = new CreateProfessorRequest(
                 "Professor Sem Permissão",
@@ -197,6 +231,58 @@ class ProfessorControllerIntegrationTest {
     }
 
     @Test
+    void loginWithCreatedProfessorCredentialsShouldReturnOk() throws Exception {
+        createProfessorViaApi(
+                "Isadora Cristina",
+                "i@i.com",
+                "isadora",
+                "Cardio",
+                "Feminino"
+        );
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"i@i.com\",\"password\":\"isadora\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("i@i.com"))
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.userId").isNotEmpty())
+                .andExpect(jsonPath("$.professorId").isNotEmpty())
+                .andExpect(jsonPath("$.roles[0]").value("ROLE_PROFESSOR"));
+    }
+
+    @Test
+    void refreshTokenShouldReturnNewAccessAndRefreshToken() throws Exception {
+        createProfessorViaApi(
+                "Professor Refresh",
+                "refresh@ilumina.com",
+                "123456",
+                "Biologia",
+                "Feminino"
+        );
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"refresh@ilumina.com\",\"password\":\"123456\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode loginRoot = objectMapper.readTree(loginResult.getResponse().getContentAsString());
+        String refreshToken = loginRoot.path("refreshToken").asText();
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("refresh@ilumina.com"))
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.professorId").isNotEmpty())
+                .andExpect(jsonPath("$.roles[0]").value("ROLE_PROFESSOR"));
+    }
+
+    @Test
     void getProfessorByInvalidIdShouldReturnNotFound() throws Exception {
         mockMvc.perform(get("/api/v1/professor/{id}", UUID.randomUUID())
                         .with(user("admin@ilumina.com").roles("ADMIN")))
@@ -237,6 +323,12 @@ class ProfessorControllerIntegrationTest {
         JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
         return UUID.fromString(root.path("data").path("id").asText());
     }
+
+        private JsonNode decodeJwtPayload(String token) throws Exception {
+                String[] chunks = token.split("\\.");
+                String payloadJson = new String(Base64.getUrlDecoder().decode(chunks[1]), StandardCharsets.UTF_8);
+                return objectMapper.readTree(payloadJson);
+        }
 
     private Professor createProfessorDirectly(
             String name,

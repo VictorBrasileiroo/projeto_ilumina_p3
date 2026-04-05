@@ -18,3 +18,4 @@ spring:
 jwt:
   secret: testsecretkeyiluminaverylongandsecure12345
   expiration: 86400000
+  refresh-expiration: 604800000
