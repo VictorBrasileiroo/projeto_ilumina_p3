@@ -71,7 +71,7 @@ class ProfessorControllerIntegrationTest {
                 "Masculino"
         );
 
-        mockMvc.perform(post("/api/v1/professors")
+        mockMvc.perform(post("/api/v1/professor")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -95,7 +95,7 @@ class ProfessorControllerIntegrationTest {
                 "Feminino"
         );
 
-        mockMvc.perform(post("/api/v1/professors")
+        mockMvc.perform(post("/api/v1/professor")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(duplicate)))
                 .andExpect(status().isConflict())
@@ -112,7 +112,7 @@ class ProfessorControllerIntegrationTest {
                 "Feminino"
         );
 
-        mockMvc.perform(post("/api/v1/professors")
+        mockMvc.perform(post("/api/v1/professor")
                         .with(user("prof@ilumina.com").roles("PROFESSOR"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -123,7 +123,7 @@ class ProfessorControllerIntegrationTest {
     void getProfessorByIdAsOwnerShouldReturnOk() throws Exception {
         Professor professor = createProfessorDirectly("Professor Dono", "dono@ilumina.com", "Arte", "Feminino", true);
 
-        mockMvc.perform(get("/api/v1/professors/{id}", professor.getId())
+        mockMvc.perform(get("/api/v1/professor/{id}", professor.getId())
                         .with(user("dono@ilumina.com").roles("PROFESSOR")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email").value("dono@ilumina.com"));
@@ -141,7 +141,7 @@ class ProfessorControllerIntegrationTest {
                 null
         );
 
-        mockMvc.perform(put("/api/v1/professors/{id}", target.getId())
+        mockMvc.perform(put("/api/v1/professor/{id}", target.getId())
                         .with(user("dono@ilumina.com").roles("PROFESSOR"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
@@ -153,12 +153,12 @@ class ProfessorControllerIntegrationTest {
         createProfessorDirectly("Professor Ativo", "ativo@ilumina.com", "Música", "Masculino", true);
         createProfessorDirectly("Professor Inativo", "inativo@ilumina.com", "Língua Portuguesa", "Feminino", false);
 
-        mockMvc.perform(get("/api/v1/professors")
+        mockMvc.perform(get("/api/v1/professor")
                         .with(user("admin@ilumina.com").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1));
 
-        mockMvc.perform(get("/api/v1/professors")
+        mockMvc.perform(get("/api/v1/professor")
                         .with(user("admin@ilumina.com").roles("ADMIN"))
                         .param("includeInactive", "true"))
                 .andExpect(status().isOk())
@@ -175,7 +175,7 @@ class ProfessorControllerIntegrationTest {
                 "Masculino"
         );
 
-        mockMvc.perform(patch("/api/v1/professors/{id}/deactivate", professorId)
+        mockMvc.perform(patch("/api/v1/professor/{id}/deactivate", professorId)
                         .with(user("admin@ilumina.com").roles("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.active").value(false));
@@ -190,7 +190,7 @@ class ProfessorControllerIntegrationTest {
     void deactivateAlreadyInactiveProfessorShouldReturnBadRequest() throws Exception {
         Professor professor = createProfessorDirectly("Professor Inativo", "inativo2@ilumina.com", "Física", "Masculino", false);
 
-        mockMvc.perform(patch("/api/v1/professors/{id}/deactivate", professor.getId())
+        mockMvc.perform(patch("/api/v1/professor/{id}/deactivate", professor.getId())
                         .with(user("admin@ilumina.com").roles("ADMIN")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
@@ -198,7 +198,7 @@ class ProfessorControllerIntegrationTest {
 
     @Test
     void getProfessorByInvalidIdShouldReturnNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/professors/{id}", UUID.randomUUID())
+        mockMvc.perform(get("/api/v1/professor/{id}", UUID.randomUUID())
                         .with(user("admin@ilumina.com").roles("ADMIN")))
                 .andExpect(status().isNotFound());
     }
@@ -213,7 +213,7 @@ class ProfessorControllerIntegrationTest {
                 "Masculino"
         );
 
-        mockMvc.perform(post("/api/v1/professors")
+        mockMvc.perform(post("/api/v1/professor")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
@@ -228,7 +228,7 @@ class ProfessorControllerIntegrationTest {
     ) throws Exception {
         CreateProfessorRequest request = new CreateProfessorRequest(name, email, password, disciplina, sexo);
 
-        MvcResult result = mockMvc.perform(post("/api/v1/professors")
+        MvcResult result = mockMvc.perform(post("/api/v1/professor")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())

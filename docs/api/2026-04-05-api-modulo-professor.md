@@ -2,7 +2,7 @@
 
 Data: 2026-04-05  
 Versao: v1  
-Base path: `/api/v1/professors`
+Base path: `/api/v1/professor`
 
 ## 1. Objetivo
 
@@ -27,11 +27,11 @@ Politica atual por endpoint:
 
 | Endpoint | Autenticacao | Autorizacao |
 |---|---|---|
-| `POST /api/v1/professors` | nao obrigatoria | publica |
-| `GET /api/v1/professors` | obrigatoria (JWT) | `ROLE_ADMIN` |
-| `GET /api/v1/professors/{id}` | obrigatoria (JWT) | `ROLE_ADMIN` ou proprio professor |
-| `PUT /api/v1/professors/{id}` | obrigatoria (JWT) | `ROLE_ADMIN` ou proprio professor |
-| `PATCH /api/v1/professors/{id}/deactivate` | obrigatoria (JWT) | `ROLE_ADMIN` |
+| `POST /api/v1/professor` | nao obrigatoria | publica |
+| `GET /api/v1/professor` | obrigatoria (JWT) | `ROLE_ADMIN` |
+| `GET /api/v1/professor/{id}` | obrigatoria (JWT) | `ROLE_ADMIN` ou proprio professor |
+| `PUT /api/v1/professor/{id}` | obrigatoria (JWT) | `ROLE_ADMIN` ou proprio professor |
+| `PATCH /api/v1/professor/{id}/deactivate` | obrigatoria (JWT) | `ROLE_ADMIN` |
 
 Header para endpoints protegidos:
 ```http
@@ -50,7 +50,7 @@ Todas as respostas do controller usam `ApiResponse<T>`:
   "message": "...",
   "data": {},
   "errors": null,
-  "path": "/api/v1/professors"
+  "path": "/api/v1/professor"
 }
 ```
 
@@ -63,7 +63,7 @@ Em erro:
   "message": "Erro de validacao.",
   "data": null,
   "errors": ["campo: detalhe"],
-  "path": "/api/v1/professors"
+  "path": "/api/v1/professor"
 }
 ```
 
@@ -122,7 +122,7 @@ Regras:
 
 ## 5.1 Criar professor
 
-`POST /api/v1/professors`
+`POST /api/v1/professor`
 
 Body: `CreateProfessorRequest`
 
@@ -155,7 +155,7 @@ Erros esperados:
 
 cURL:
 ```bash
-curl -X POST "http://localhost:8080/api/v1/professors" \
+curl -X POST "http://localhost:8080/api/v1/professor" \
   -H "Content-Type: application/json" \
   -d '{
     "name":"Professora Maria",
@@ -168,7 +168,7 @@ curl -X POST "http://localhost:8080/api/v1/professors" \
 
 ## 5.2 Listar professores
 
-`GET /api/v1/professors?includeInactive=false`
+`GET /api/v1/professor?includeInactive=false`
 
 Query params:
 - `includeInactive` (opcional, default `false`)
@@ -182,13 +182,13 @@ Erros esperados:
 
 cURL:
 ```bash
-curl -X GET "http://localhost:8080/api/v1/professors?includeInactive=false" \
+curl -X GET "http://localhost:8080/api/v1/professor?includeInactive=false" \
   -H "Authorization: Bearer <jwt>"
 ```
 
 ## 5.3 Detalhar professor
 
-`GET /api/v1/professors/{id}`
+`GET /api/v1/professor/{id}`
 
 Sucesso:
 - `200 OK`
@@ -200,13 +200,13 @@ Erros esperados:
 
 cURL:
 ```bash
-curl -X GET "http://localhost:8080/api/v1/professors/{id}" \
+curl -X GET "http://localhost:8080/api/v1/professor/{id}" \
   -H "Authorization: Bearer <jwt>"
 ```
 
 ## 5.4 Atualizar professor
 
-`PUT /api/v1/professors/{id}`
+`PUT /api/v1/professor/{id}`
 
 Body: `UpdateProfessorRequest`
 
@@ -222,7 +222,7 @@ Erros esperados:
 
 cURL:
 ```bash
-curl -X PUT "http://localhost:8080/api/v1/professors/{id}" \
+curl -X PUT "http://localhost:8080/api/v1/professor/{id}" \
   -H "Authorization: Bearer <jwt>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -233,7 +233,7 @@ curl -X PUT "http://localhost:8080/api/v1/professors/{id}" \
 
 ## 5.5 Desativar professor
 
-`PATCH /api/v1/professors/{id}/deactivate`
+`PATCH /api/v1/professor/{id}/deactivate`
 
 Sucesso:
 - `200 OK`
@@ -246,7 +246,7 @@ Erros esperados:
 
 cURL:
 ```bash
-curl -X PATCH "http://localhost:8080/api/v1/professors/{id}/deactivate" \
+curl -X PATCH "http://localhost:8080/api/v1/professor/{id}/deactivate" \
   -H "Authorization: Bearer <jwt>"
 ```
 
@@ -263,7 +263,7 @@ curl -X PATCH "http://localhost:8080/api/v1/professors/{id}/deactivate" \
 
 ## 7. Observacoes importantes para frontend
 
-- `POST /api/v1/professors` esta aberto no estado atual.
+- `POST /api/v1/professor` esta aberto no estado atual.
 - Os demais endpoints exigem JWT valido.
 - Em qualquer erro, prefira ler `message` e `errors[]` no envelope para exibir feedback na UI.
 - Na listagem, use `includeInactive=true` apenas em contexto administrativo.

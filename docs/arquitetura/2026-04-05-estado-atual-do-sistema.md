@@ -90,13 +90,13 @@ Exception:
 Rotas publicas principais:
 - `/api/v1/auth/**`
 - `/api/v1/health/**`
-- `POST /api/v1/professors` (cadastro publico do primeiro corte)
+- `POST /api/v1/professor` (cadastro publico do primeiro corte)
 
 Rotas protegidas do modulo professor:
-- `GET /api/v1/professors` -> admin
-- `GET /api/v1/professors/{id}` -> admin ou proprio professor
-- `PUT /api/v1/professors/{id}` -> admin ou proprio professor
-- `PATCH /api/v1/professors/{id}/deactivate` -> admin
+- `GET /api/v1/professor` -> admin
+- `GET /api/v1/professor/{id}` -> admin ou proprio professor
+- `PUT /api/v1/professor/{id}` -> admin ou proprio professor
+- `PATCH /api/v1/professor/{id}/deactivate` -> admin
 
 ## 7. Persistencia e estado dos dados
 

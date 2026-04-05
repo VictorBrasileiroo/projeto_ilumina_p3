@@ -45,7 +45,7 @@ Resultado:
 - `backend/src/main/java/br/com/ilumina/controller/Professor/ProfessorController.java`
 
 Resultado:
-- endpoints expostos em `/api/v1/professors` para criar/listar/detalhar/editar/desativar;
+- endpoints expostos em `/api/v1/professor` para criar/listar/detalhar/editar/desativar;
 - respostas padronizadas com `ApiResponse`.
 
 ## 3. Arquivos alterados
@@ -55,7 +55,7 @@ Resultado:
 - `backend/src/main/java/br/com/ilumina/security/SecurityConfig.java`
 
 Alteracao:
-- `POST /api/v1/professors` liberado sem autenticacao para simplificar onboarding inicial.
+- `POST /api/v1/professor` liberado sem autenticacao para simplificar onboarding inicial.
 
 ### 3.2 Tratamento global de erro
 
