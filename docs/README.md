@@ -23,11 +23,17 @@ Arquitetura:
 Feature de Professor:
 - `docs/features/2026-04-05-feature-modulo-professor-crud-inicial.md`
 
+Feature de Turma:
+- `docs/features/2026-04-05-feature-modulo-turma-crud-v1.md`
+
 Feature de JWT (refresh + claims):
 - `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
 
 API do modulo de Professor:
 - `docs/api/2026-04-05-api-modulo-professor.md`
+
+API do modulo de Turma:
+- `docs/api/2026-04-05-api-modulo-turma.md`
 
 API de autenticacao (JWT):
 - `docs/api/2026-04-05-api-auth-jwt-refresh-claims.md`
@@ -38,6 +44,7 @@ Historico de implementacao:
 - `docs/etapas/2026-03-25-03-seguranca-jwt-autenticacao.md`
 - `docs/etapas/2026-04-05-04-modulo-professor-crud-inicial.md`
 - `docs/etapas/2026-04-05-05-evolucao-jwt-refresh-claims.md`
+- `docs/etapas/2026-04-05-06-modulo-turma-crud-v1.md`
 
 Guias de processo:
 - `docs/guias/01.Guia-Branches.md`

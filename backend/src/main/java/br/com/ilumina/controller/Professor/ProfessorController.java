@@ -6,6 +6,7 @@ import br.com.ilumina.dto.professor.ProfessorResponse;
 import br.com.ilumina.dto.professor.UpdateProfessorRequest;
 import br.com.ilumina.dto.shared.ApiResponse;
 import br.com.ilumina.service.Professor.ProfessorService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,7 @@ public class ProfessorController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+        @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<List<ProfessorResponse>>> findAll(
             @RequestParam(defaultValue = "false") boolean includeInactive,
             HttpServletRequest servletRequest
@@ -64,6 +66,7 @@ public class ProfessorController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+        @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<ProfessorResponse>> findById(
             @PathVariable UUID id,
             Authentication authentication,
@@ -83,6 +86,7 @@ public class ProfessorController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+        @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<ProfessorResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateProfessorRequest request,
@@ -103,6 +107,7 @@ public class ProfessorController {
 
     @PatchMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
+        @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<ProfessorResponse>> deactivate(
             @PathVariable UUID id,
             HttpServletRequest servletRequest

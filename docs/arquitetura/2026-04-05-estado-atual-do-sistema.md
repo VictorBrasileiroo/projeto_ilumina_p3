@@ -5,17 +5,18 @@ Escopo analisado: backend e documentacao tecnica
 
 ## 1. Resumo executivo
 
-O sistema agora possui, alem do modulo de autenticacao JWT e health check, um modulo inicial de Professor em producao no backend.
+O sistema agora possui, alem do modulo de autenticacao JWT e health check, os modulos iniciais de Professor e Turma em producao no backend.
 
 No estado atual:
 - o cadastro de professor esta funcional e transacional (cria `User` + `Professor`);
 - a leitura/edicao/desativacao seguem controle de acesso por papel e ownership;
 - a desativacao e logica (`user.active=false`), preservando historico de perfil;
-- ainda nao existem relacionamentos funcionais com turmas, alunos, provas ou flashcards.
+- o modulo de turma possui CRUD inicial, desativacao logica e vinculo N:N professor-turma via entidade explicita;
+- ainda nao existem relacionamentos funcionais com alunos, provas ou flashcards.
 
 ## 2. Estrutura atual do repositorio
 
-- `backend/`: API Spring Boot (modulos de Auth, Health e Professor).
+- `backend/`: API Spring Boot (modulos de Auth, Health, Professor e Turma).
 - `frontend/`: sem implementacao de codigo consolidada (README inicial).
 - `docs/`: arquitetura, etapas, guias e features.
 
@@ -59,22 +60,48 @@ Capacidades:
 - editar
 - desativar
 
+## 4.3 Modulo Turma (primeiro corte)
+
+Entidades:
+- `Turma`
+- `ProfTurma` (pivot explicita para relacionamento N:N professor-turma)
+
+Campos principais de turma:
+- `nome`
+- `ano` (1..9)
+- `turno` (`MATUTINO`, `VESPERTINO`, `NOTURNO`)
+- `ensino` (`INFANTIL`, `FUNDAMENTAL`, `MEDIO`, `SUPERIOR`)
+- `qntAlunos` (>= 0)
+- `active`
+
+Capacidades:
+- criar (admin/professor)
+- listar (admin: todas; professor: apenas vinculadas)
+- detalhar (admin ou professor vinculado)
+- editar (admin ou professor vinculado; bloqueada se turma inativa)
+- desativar (admin ou professor vinculado)
+- join/leave de professor (com dupla validacao por professor autenticado + professorId alvo)
+
 ## 5. Arquitetura em camadas (estado real)
 
 Controller:
 - `AuthController`
 - `HealthController`
 - `ProfessorController`
+- `TurmaController`
 
 Service:
 - `AuthSeervice`
 - `ProfessorService`
+- `TurmaService`
 - `DataInitializerRole`
 
 Repository:
 - `UserRepository`
 - `RoleRepository`
 - `ProfessorRepository`
+- `TurmaRepository`
+- `ProfTurmaRepository`
 
 Security:
 - `SecurityConfig`
@@ -108,6 +135,15 @@ Rotas protegidas do modulo professor:
 - `PUT /api/v1/professor/{id}` -> admin ou proprio professor
 - `PATCH /api/v1/professor/{id}/deactivate` -> admin
 
+Rotas protegidas do modulo turma:
+- `POST /api/v1/turmas` -> admin/professor
+- `GET /api/v1/turmas` -> admin/professor (escopo por perfil)
+- `GET /api/v1/turmas/{id}` -> admin ou professor vinculado
+- `PUT /api/v1/turmas/{id}` -> admin ou professor vinculado
+- `PATCH /api/v1/turmas/{id}/deactivate` -> admin ou professor vinculado
+- `POST /api/v1/turmas/{id}/join` -> professor
+- `DELETE /api/v1/turmas/{id}/leave?professorId=<uuid>` -> professor
+
 ## 7. Persistencia e estado dos dados
 
 Modelo ativo para professor:
@@ -115,10 +151,15 @@ Modelo ativo para professor:
 - `professores` (perfil funcional)
 - `users_roles` (associacao N:N de papeis)
 
+Modelo ativo para turmas:
+- `turmas` (dominio da turma com estado logico)
+- `prof_turma` (associacao N:N professor-turma com constraint de unicidade)
+
 Sem acoplamentos implementados no momento:
-- professor <-> turma
 - professor <-> provas
 - professor <-> colecoes
+- turma <-> alunos
+- turma <-> provas
 
 ## 8. Qualidade e testes
 
@@ -126,9 +167,10 @@ Base de teste atual:
 - profile de teste com H2
 - teste de contexto da aplicacao
 - testes de integracao do modulo professor cobrindo cenarios de sucesso e erro
+- testes de integracao do modulo turma cobrindo sucesso, validacoes, autorizacao e fluxo de vinculo
 
 Estado observado:
-- suite executando com sucesso na rodada mais recente de validacao
+- suite executando com sucesso na rodada mais recente de validacao (`38` testes)
 
 ## 9. Decisoes arquiteturais aplicadas
 
@@ -143,6 +185,7 @@ Divergencia operacional atual:
 ## 10. Proximos pontos arquiteturais recomendados
 
 - Definir politica final de criacao de professor (publica x restrita por ambiente).
-- Iniciar modulo de relacionamento com turmas (N:N) usando `Professor` como entidade de dominio.
+- Iniciar modulo de relacionamento aluno-turma.
 - Evoluir listagem de professor com filtros e paginacao.
+- Evoluir listagem de turmas com filtros e paginacao.
 - Introduzir estrategia de revogacao de refresh token (blacklist/versionamento) para cenarios de logout forcado.
