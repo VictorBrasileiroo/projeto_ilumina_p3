@@ -794,9 +794,9 @@ Justificativa: O backend já possui contratos de API documentados e estáveis pa
   - Criar entidade `AlunoTurma` com constraint de unicidade (aluno_id, turma_id)
   - Criar `AlunoTurmaRepository`
   - Endpoints em TurmaController ou AlunoController:
-    - `POST /api/v1/turmas/{id}/alunos` (matricular)
-    - `DELETE /api/v1/turmas/{id}/alunos/{alunoId}` (desmatricular)
-    - `GET /api/v1/turmas/{id}/alunos` (listar alunos da turma)
+    - `POST /api/v1/turmas/{id}/matriculas` (matricular)
+    - `DELETE /api/v1/turmas/{id}/matriculas/{alunoId}` (desmatricular)
+    - `GET /api/v1/turmas/{id}/matriculas` (listar alunos da turma)
   - Endpoint em AlunoController:
     - `GET /api/v1/aluno/{id}/turmas` (listar turmas do aluno)
   - Autorização: professor vinculado à turma ou admin pode matricular/desmatricular

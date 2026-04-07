@@ -1,16 +1,21 @@
 package br.com.ilumina.service.Turma;
 
+import br.com.ilumina.dto.aluno.AlunoResponse;
 import br.com.ilumina.dto.turma.CreateTurmaRequest;
 import br.com.ilumina.dto.turma.TurmaProfessorResponse;
 import br.com.ilumina.dto.turma.TurmaResponse;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
+import br.com.ilumina.entity.Aluno.Aluno;
 import br.com.ilumina.entity.Professor.Professor;
+import br.com.ilumina.entity.Turma.AlunoTurma;
 import br.com.ilumina.entity.Turma.ProfTurma;
 import br.com.ilumina.entity.Turma.Turma;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.exception.BusinessException;
 import br.com.ilumina.exception.ResourceNotFoundException;
+import br.com.ilumina.repository.Aluno.AlunoRepository;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
+import br.com.ilumina.repository.Turma.AlunoTurmaRepository;
 import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
 import br.com.ilumina.repository.User.UserRepository;
@@ -27,18 +32,24 @@ import java.util.UUID;
 public class TurmaService {
 
     private final TurmaRepository turmaRepository;
+    private final AlunoTurmaRepository alunoTurmaRepository;
     private final ProfTurmaRepository profTurmaRepository;
+    private final AlunoRepository alunoRepository;
     private final ProfessorRepository professorRepository;
     private final UserRepository userRepository;
 
     public TurmaService(
             TurmaRepository turmaRepository,
+            AlunoTurmaRepository alunoTurmaRepository,
             ProfTurmaRepository profTurmaRepository,
+            AlunoRepository alunoRepository,
             ProfessorRepository professorRepository,
             UserRepository userRepository
     ) {
         this.turmaRepository = turmaRepository;
+        this.alunoTurmaRepository = alunoTurmaRepository;
         this.profTurmaRepository = profTurmaRepository;
+        this.alunoRepository = alunoRepository;
         this.professorRepository = professorRepository;
         this.userRepository = userRepository;
     }
@@ -66,14 +77,20 @@ public class TurmaService {
     }
 
     @Transactional(readOnly = true)
-    public List<TurmaResponse> findAll(boolean includeInactive, String currentUserEmail, boolean isAdmin) {
+    public List<TurmaResponse> findAll(
+            boolean includeInactive,
+            String currentUserEmail,
+            boolean isAdmin,
+            boolean isProfessor,
+            boolean isAluno
+    ) {
         List<Turma> turmas;
 
         if (isAdmin) {
             turmas = includeInactive
                     ? turmaRepository.findAllByOrderByCreatedAtDesc()
                     : turmaRepository.findByActiveTrueOrderByCreatedAtDesc();
-        } else {
+        } else if (isProfessor) {
             Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
 
             turmas = profTurmaRepository.findByProfessor_Id(currentProfessor.getId())
@@ -83,6 +100,12 @@ public class TurmaService {
                     .filter(turma -> includeInactive || turma.isActive())
                     .sorted(Comparator.comparing(Turma::getCreatedAt).reversed())
                     .toList();
+        } else if (isAluno) {
+            turmas = includeInactive
+                    ? turmaRepository.findAllByOrderByCreatedAtDesc()
+                    : turmaRepository.findByActiveTrueOrderByCreatedAtDesc();
+        } else {
+            throw new AccessDeniedException("Acesso negado.");
         }
 
         return turmas.stream()
@@ -159,7 +182,7 @@ public class TurmaService {
         Professor professor = professorRepository.findById(professorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Professor não encontrado."));
 
-        if (profTurmaRepository.existsByProfessor_IdAndTurma_Id(professorId, turmaId)) {
+        if (isProfessorLinkedToTurma(professorId, turmaId)) {
             throw new BusinessException("Professor já está vinculado a esta turma.");
         }
 
@@ -180,12 +203,133 @@ public class TurmaService {
             throw new ResourceNotFoundException("Professor não encontrado.");
         }
 
-        if (!profTurmaRepository.existsByProfessor_IdAndTurma_Id(professorId, turmaId)) {
+        if (!isProfessorLinkedToTurma(professorId, turmaId)) {
             throw new BusinessException("Professor não está vinculado a esta turma.");
         }
 
         profTurmaRepository.deleteByProfessor_IdAndTurma_Id(professorId, turmaId);
         return toResponse(turma);
+    }
+
+    @Transactional
+    public TurmaResponse enrollStudent(
+            UUID turmaId,
+            UUID alunoId,
+            String currentUserEmail,
+            boolean isAdmin,
+            boolean isProfessor,
+            boolean isAluno
+    ) {
+        Turma turma = findTurmaById(turmaId);
+        validateTurmaIsActive(turma, "Turma desativada não aceita novas matrículas.");
+        Aluno authorizedAluno = validateStudentEnrollmentAuthorization(
+            turmaId,
+            alunoId,
+            currentUserEmail,
+            isAdmin,
+            isProfessor,
+            isAluno
+        );
+
+        Aluno aluno = authorizedAluno != null
+            ? authorizedAluno
+            : alunoRepository.findById(alunoId)
+            .orElseThrow(() -> new ResourceNotFoundException("Aluno não encontrado."));
+
+        if (alunoTurmaRepository.existsByAluno_IdAndTurma_Id(alunoId, turmaId)) {
+            throw new BusinessException("Aluno já está matriculado nesta turma.");
+        }
+
+        addAlunoToTurma(aluno, turma);
+        return toResponse(turma);
+    }
+
+    @Transactional
+    public TurmaResponse unenrollStudent(
+            UUID turmaId,
+            UUID alunoId,
+            String currentUserEmail,
+            boolean isAdmin
+    ) {
+        Turma turma = findTurmaById(turmaId);
+
+        if (!isAdmin) {
+            Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
+            if (!isProfessorLinkedToTurma(currentProfessor.getId(), turmaId)) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+        }
+
+        if (!alunoRepository.existsById(alunoId)) {
+            throw new ResourceNotFoundException("Aluno não encontrado.");
+        }
+
+        if (!alunoTurmaRepository.existsByAluno_IdAndTurma_Id(alunoId, turmaId)) {
+            throw new BusinessException("Aluno não está matriculado nesta turma.");
+        }
+
+        alunoTurmaRepository.deleteByAluno_IdAndTurma_Id(alunoId, turmaId);
+        return toResponse(turma);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlunoResponse> findStudents(UUID turmaId, String currentUserEmail, boolean isAdmin) {
+        findTurmaById(turmaId);
+
+        if (!isAdmin) {
+            Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
+            if (!isProfessorLinkedToTurma(currentProfessor.getId(), turmaId)) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+        }
+
+        return listStudentsByTurmaId(turmaId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlunoResponse> findStudentsPublic(UUID turmaId) {
+        findTurmaById(turmaId);
+        return listStudentsByTurmaId(turmaId);
+    }
+
+    private List<AlunoResponse> listStudentsByTurmaId(UUID turmaId) {
+        return alunoTurmaRepository.findByTurma_IdOrderByCreatedAtAsc(turmaId)
+                .stream()
+                .map(AlunoTurma::getAluno)
+                .map(this::toAlunoResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TurmaResponse> findTurmasByAluno(
+            UUID alunoId,
+            boolean includeInactive,
+            String currentUserEmail,
+            boolean isAdmin
+    ) {
+        Aluno aluno = alunoRepository.findById(alunoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Aluno não encontrado."));
+
+        if (!isAdmin) {
+            Aluno currentAluno = resolveCurrentAlunoRequiredByEmail(currentUserEmail);
+            if (!currentAluno.getId().equals(aluno.getId())) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+        }
+
+        return alunoTurmaRepository.findByAluno_Id(alunoId)
+                .stream()
+                .map(AlunoTurma::getTurma)
+                .distinct()
+                .filter(turma -> includeInactive || turma.isActive())
+                .sorted(Comparator.comparing(Turma::getCreatedAt).reversed())
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isProfessorLinkedToTurma(UUID professorId, UUID turmaId) {
+        return profTurmaRepository.existsByProfessor_IdAndTurma_Id(professorId, turmaId);
     }
 
     private Turma findTurmaById(UUID turmaId) {
@@ -199,9 +343,40 @@ public class TurmaService {
         }
 
         Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
-        if (!profTurmaRepository.existsByProfessor_IdAndTurma_Id(currentProfessor.getId(), turmaId)) {
+        if (!isProfessorLinkedToTurma(currentProfessor.getId(), turmaId)) {
             throw new AccessDeniedException("Acesso negado.");
         }
+    }
+
+    private Aluno validateStudentEnrollmentAuthorization(
+            UUID turmaId,
+            UUID alunoId,
+            String currentUserEmail,
+            boolean isAdmin,
+            boolean isProfessor,
+            boolean isAluno
+    ) {
+        if (isAdmin) {
+            return null;
+        }
+
+        if (isProfessor) {
+            Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
+            if (!isProfessorLinkedToTurma(currentProfessor.getId(), turmaId)) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+            return null;
+        }
+
+        if (isAluno) {
+            Aluno currentAluno = resolveCurrentAlunoRequiredByEmail(currentUserEmail);
+            if (!currentAluno.getId().equals(alunoId)) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+            return currentAluno;
+        }
+
+        throw new AccessDeniedException("Acesso negado.");
     }
 
     private void validateTurmaIsActive(Turma turma, String message) {
@@ -227,11 +402,35 @@ public class TurmaService {
                 .orElseThrow(() -> new AccessDeniedException("Acesso negado."));
     }
 
+    private Optional<Aluno> resolveCurrentAlunoByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+
+        String normalizedEmail = email.trim().toLowerCase();
+
+        return userRepository.findByEmail(normalizedEmail)
+                .map(User::getId)
+                .flatMap(alunoRepository::findByUserId);
+    }
+
+    private Aluno resolveCurrentAlunoRequiredByEmail(String email) {
+        return resolveCurrentAlunoByEmail(email)
+                .orElseThrow(() -> new AccessDeniedException("Acesso negado."));
+    }
+
     private void addProfessorToTurma(Professor professor, Turma turma) {
         ProfTurma profTurma = new ProfTurma();
         profTurma.setProfessor(professor);
         profTurma.setTurma(turma);
         profTurmaRepository.save(profTurma);
+    }
+
+    private void addAlunoToTurma(Aluno aluno, Turma turma) {
+        AlunoTurma alunoTurma = new AlunoTurma();
+        alunoTurma.setAluno(aluno);
+        alunoTurma.setTurma(turma);
+        alunoTurmaRepository.save(alunoTurma);
     }
 
     private String normalizeRequired(String value, String message) {
@@ -264,6 +463,20 @@ public class TurmaService {
                 turma.isActive(),
                 turma.getCreatedAt(),
                 professores
+        );
+    }
+
+    private AlunoResponse toAlunoResponse(Aluno aluno) {
+        User user = aluno.getUser();
+        return new AlunoResponse(
+                aluno.getId(),
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                aluno.getMatricula(),
+                aluno.getSexo(),
+                user.isActive(),
+                aluno.getCreatedAt()
         );
     }
 }

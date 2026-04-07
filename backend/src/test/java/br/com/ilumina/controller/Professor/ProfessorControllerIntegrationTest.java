@@ -113,6 +113,7 @@ class ProfessorControllerIntegrationTest {
 
                 assertThat(payload.path("userId").asText()).isEqualTo(userId);
                 assertThat(payload.path("professorId").asText()).isEqualTo(professorId);
+                assertThat(payload.path("alunoId").isMissingNode()).isTrue();
                 assertThat(payload.path("roles").isArray()).isTrue();
                 assertThat(payload.path("roles").toString()).contains("ROLE_PROFESSOR");
         }

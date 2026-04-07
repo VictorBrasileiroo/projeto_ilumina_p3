@@ -1,7 +1,9 @@
 package br.com.ilumina.controller.Turma;
 
+import br.com.ilumina.dto.aluno.AlunoResponse;
 import br.com.ilumina.dto.shared.ApiResponse;
 import br.com.ilumina.dto.turma.CreateTurmaRequest;
+import br.com.ilumina.dto.turma.TurmaAlunoVinculoRequest;
 import br.com.ilumina.dto.turma.TurmaResponse;
 import br.com.ilumina.dto.turma.TurmaVinculoRequest;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
@@ -49,13 +51,19 @@ public class TurmaController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR', 'ALUNO')")
     public ResponseEntity<ApiResponse<List<TurmaResponse>>> findAll(
             @RequestParam(defaultValue = "false") boolean includeInactive,
             Authentication authentication,
             HttpServletRequest servletRequest
     ) {
-        List<TurmaResponse> response = turmaService.findAll(includeInactive, authentication.getName(), isAdmin(authentication));
+                List<TurmaResponse> response = turmaService.findAll(
+                                includeInactive,
+                                authentication.getName(),
+                                isAdmin(authentication),
+                                hasRole(authentication, "ROLE_PROFESSOR"),
+                                hasRole(authentication, "ROLE_ALUNO")
+                );
 
         ApiResponse<List<TurmaResponse>> body = ApiResponse.sucess(
                 HttpStatus.OK.value(),
@@ -165,9 +173,101 @@ public class TurmaController {
         return ResponseEntity.ok(body);
     }
 
+    @PostMapping("/{id}/matriculas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR', 'ALUNO')")
+    public ResponseEntity<ApiResponse<TurmaResponse>> enrollStudent(
+            @PathVariable UUID id,
+            @Valid @RequestBody TurmaAlunoVinculoRequest request,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        TurmaResponse response = turmaService.enrollStudent(
+                id,
+                request.alunoId(),
+                authentication.getName(),
+                isAdmin(authentication),
+                hasRole(authentication, "ROLE_PROFESSOR"),
+                hasRole(authentication, "ROLE_ALUNO")
+        );
+
+        ApiResponse<TurmaResponse> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Aluno matriculado na turma com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+        @DeleteMapping("/{id}/matriculas/{alunoId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<TurmaResponse>> unenrollStudent(
+            @PathVariable UUID id,
+            @PathVariable UUID alunoId,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        TurmaResponse response = turmaService.unenrollStudent(
+                id,
+                alunoId,
+                authentication.getName(),
+                isAdmin(authentication)
+        );
+
+        ApiResponse<TurmaResponse> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Aluno desmatriculado da turma com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+        @GetMapping("/{id}/matriculas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<List<AlunoResponse>>> findStudents(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        List<AlunoResponse> response = turmaService.findStudents(id, authentication.getName(), isAdmin(authentication));
+
+        ApiResponse<List<AlunoResponse>> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Alunos da turma listados com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+        @GetMapping("/{id}/matriculas/publico")
+        public ResponseEntity<ApiResponse<List<AlunoResponse>>> findStudentsPublic(
+                        @PathVariable UUID id,
+                        HttpServletRequest servletRequest
+        ) {
+                List<AlunoResponse> response = turmaService.findStudentsPublic(id);
+
+                ApiResponse<List<AlunoResponse>> body = ApiResponse.sucess(
+                                HttpStatus.OK.value(),
+                                "Alunos da turma listados com sucesso.",
+                                response,
+                                servletRequest.getRequestURI()
+                );
+
+                return ResponseEntity.ok(body);
+        }
+
     private boolean isAdmin(Authentication authentication) {
+        return hasRole(authentication, "ROLE_ADMIN");
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
         return authentication.getAuthorities()
                 .stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(authority -> authority.getAuthority().equals(role));
     }
 }

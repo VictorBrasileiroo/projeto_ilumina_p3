@@ -1,5 +1,7 @@
 package br.com.ilumina.controller.Turma;
 
+import br.com.ilumina.entity.Aluno.Aluno;
+import br.com.ilumina.entity.Turma.AlunoTurma;
 import br.com.ilumina.dto.turma.CreateTurmaRequest;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
 import br.com.ilumina.entity.Professor.Professor;
@@ -9,6 +11,8 @@ import br.com.ilumina.entity.Turma.Turma;
 import br.com.ilumina.entity.Turma.Turno;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.entity.User.UserRole;
+import br.com.ilumina.repository.Aluno.AlunoRepository;
+import br.com.ilumina.repository.Turma.AlunoTurmaRepository;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
@@ -54,9 +58,15 @@ class TurmaControllerIntegrationTest {
     private TurmaRepository turmaRepository;
 
     @Autowired
+        private AlunoTurmaRepository alunoTurmaRepository;
+
+        @Autowired
     private ProfTurmaRepository profTurmaRepository;
 
     @Autowired
+        private AlunoRepository alunoRepository;
+
+        @Autowired
     private ProfessorRepository professorRepository;
 
     @Autowired
@@ -70,8 +80,10 @@ class TurmaControllerIntegrationTest {
 
     @AfterEach
     void cleanup() {
+        alunoTurmaRepository.deleteAll();
         profTurmaRepository.deleteAll();
         turmaRepository.deleteAll();
+        alunoRepository.deleteAll();
         professorRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -156,6 +168,29 @@ class TurmaControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
+
+        @Test
+        void listTurmasShouldReturnOnlyActiveByDefaultForAluno() throws Exception {
+                createTurmaDirectly("Ativa", 1, Turno.MATUTINO, Ensino.FUNDAMENTAL, 20, true);
+                createTurmaDirectly("Inativa", 2, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 18, false);
+
+                mockMvc.perform(get("/api/v1/turmas")
+                                                .with(user("aluno.lista@ilumina.com").roles("ALUNO")))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.length()").value(1));
+        }
+
+        @Test
+        void listTurmasIncludeInactiveShouldReturnAllForAluno() throws Exception {
+                createTurmaDirectly("Ativa", 1, Turno.MATUTINO, Ensino.FUNDAMENTAL, 20, true);
+                createTurmaDirectly("Inativa", 2, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 18, false);
+
+                mockMvc.perform(get("/api/v1/turmas")
+                                                .with(user("aluno.lista@ilumina.com").roles("ALUNO"))
+                                                .param("includeInactive", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.length()").value(2));
+        }
 
     @Test
     void listTurmasIncludeInactiveShouldReturnAllForProfessor() throws Exception {
@@ -572,6 +607,171 @@ class TurmaControllerIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void enrollStudentAsLinkedProfessorShouldReturnOk() throws Exception {
+        Professor professor = createProfessorDirectly("Professor Matricula", "matricula@ilumina.com", "Geo", "Masculino", true);
+        Aluno aluno = createAlunoDirectly("Aluno Matricula", "aluno.matricula@ilumina.com", "MAT-100", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Matricula", 3, Turno.MATUTINO, Ensino.FUNDAMENTAL, 25, true);
+        linkProfessorTurma(professor, turma);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("matricula@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turma.getId())).isTrue();
+    }
+
+    @Test
+    void alunoCanSelfEnrollInActiveTurmaShouldReturnOk() throws Exception {
+        Aluno aluno = createAlunoDirectly("Aluno Self", "self@ilumina.com", "MAT-SELF", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Self", 1, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("self@ilumina.com").roles("ALUNO"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turma.getId())).isTrue();
+    }
+
+    @Test
+    void enrollStudentAsAdminShouldReturnOk() throws Exception {
+        Aluno aluno = createAlunoDirectly("Aluno Admin", "admin.enroll@ilumina.com", "MAT-ADMIN", "Masculino", true);
+        Turma turma = createTurmaDirectly("Turma Admin", 2, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 27, true);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("admin@ilumina.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turma.getId())).isTrue();
+    }
+
+    @Test
+    void enrollStudentAlreadyEnrolledShouldReturnBadRequest() throws Exception {
+        Aluno aluno = createAlunoDirectly("Aluno Duplicado", "duplicado.matricula@ilumina.com", "MAT-DUP", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Duplicada", 3, Turno.MATUTINO, Ensino.MEDIO, 20, true);
+        linkAlunoTurma(aluno, turma);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("admin@ilumina.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Aluno já está matriculado nesta turma."));
+    }
+
+    @Test
+    void enrollStudentAsUnlinkedProfessorShouldReturnForbidden() throws Exception {
+        createProfessorDirectly("Professor Dono", "dono.matricula@ilumina.com", "Geo", "Masculino", true);
+        createProfessorDirectly("Professor Fora", "fora.matricula@ilumina.com", "Bio", "Feminino", true);
+        Aluno aluno = createAlunoDirectly("Aluno Teste", "aluno.forbidden@ilumina.com", "MAT-101", "Masculino", true);
+        Turma turma = createTurmaDirectly("Turma Restrita", 4, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 28, true);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("fora.matricula@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isForbidden());
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turma.getId())).isFalse();
+    }
+
+    @Test
+    void alunoCannotEnrollAnotherAlunoShouldReturnForbidden() throws Exception {
+        Aluno autenticado = createAlunoDirectly("Aluno A", "aluno.a@ilumina.com", "MAT-201", "Feminino", true);
+        Aluno alvo = createAlunoDirectly("Aluno B", "aluno.b@ilumina.com", "MAT-202", "Masculino", true);
+        Turma turma = createTurmaDirectly("Turma Aluno", 1, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("aluno.a@ilumina.com").roles("ALUNO"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + alvo.getId() + "\"}"))
+                .andExpect(status().isForbidden());
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(alvo.getId(), turma.getId())).isFalse();
+        assertThat(autenticado.getId()).isNotEqualTo(alvo.getId());
+    }
+
+    @Test
+    void enrollStudentInInactiveTurmaShouldReturnBadRequest() throws Exception {
+        Aluno aluno = createAlunoDirectly("Aluno Inativa", "aluno.inativa@ilumina.com", "MAT-301", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Inativa", 2, Turno.NOTURNO, Ensino.MEDIO, 22, false);
+
+        mockMvc.perform(post("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("admin@ilumina.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"alunoId\":\"" + aluno.getId() + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void listStudentsAsLinkedProfessorShouldReturnOk() throws Exception {
+        Professor professor = createProfessorDirectly("Professor Lista Alunos", "lista.alunos@ilumina.com", "Geo", "Feminino", true);
+        Aluno aluno1 = createAlunoDirectly("Aluno 1", "aluno1.lista@ilumina.com", "MAT-401", "Feminino", true);
+        Aluno aluno2 = createAlunoDirectly("Aluno 2", "aluno2.lista@ilumina.com", "MAT-402", "Masculino", true);
+        Turma turma = createTurmaDirectly("Turma Lista", 5, Turno.MATUTINO, Ensino.MEDIO, 35, true);
+        linkProfessorTurma(professor, turma);
+        linkAlunoTurma(aluno1, turma);
+        linkAlunoTurma(aluno2, turma);
+
+        mockMvc.perform(get("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("lista.alunos@ilumina.com").roles("PROFESSOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2));
+    }
+
+        @Test
+        void listStudentsPublicByTurmaIdShouldReturnOkWithoutAuthentication() throws Exception {
+                Aluno aluno1 = createAlunoDirectly("Aluno Público 1", "aluno.publico1@ilumina.com", "MAT-PUBLIC-1", "Feminino", true);
+                Aluno aluno2 = createAlunoDirectly("Aluno Público 2", "aluno.publico2@ilumina.com", "MAT-PUBLIC-2", "Masculino", true);
+                Turma turma = createTurmaDirectly("Turma Pública", 5, Turno.MATUTINO, Ensino.MEDIO, 35, true);
+                linkAlunoTurma(aluno1, turma);
+                linkAlunoTurma(aluno2, turma);
+
+                mockMvc.perform(get("/api/v1/turmas/{id}/matriculas/publico", turma.getId()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.length()").value(2));
+        }
+
+    @Test
+    void listStudentsAsUnlinkedProfessorShouldReturnForbidden() throws Exception {
+        Professor owner = createProfessorDirectly("Professor Owner Lista", "owner.lista@ilumina.com", "Geo", "Feminino", true);
+        createProfessorDirectly("Professor Fora Lista", "fora.lista@ilumina.com", "Mat", "Masculino", true);
+        Aluno aluno = createAlunoDirectly("Aluno Lista", "aluno.lista@ilumina.com", "MAT-LISTA", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Lista Restrita", 6, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 29, true);
+        linkProfessorTurma(owner, turma);
+        linkAlunoTurma(aluno, turma);
+
+        mockMvc.perform(get("/api/v1/turmas/{id}/matriculas", turma.getId())
+                        .with(user("fora.lista@ilumina.com").roles("PROFESSOR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unenrollStudentAsLinkedProfessorShouldRemoveEnrollment() throws Exception {
+        Professor professor = createProfessorDirectly("Professor Unenroll", "unenroll@ilumina.com", "Mat", "Masculino", true);
+        Aluno aluno = createAlunoDirectly("Aluno Unenroll", "aluno.unenroll@ilumina.com", "MAT-501", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Unenroll", 6, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 26, true);
+        linkProfessorTurma(professor, turma);
+        linkAlunoTurma(aluno, turma);
+
+        mockMvc.perform(delete("/api/v1/turmas/{id}/matriculas/{alunoId}", turma.getId(), aluno.getId())
+                        .with(user("unenroll@ilumina.com").roles("PROFESSOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turma.getId())).isFalse();
+    }
+
     private Professor createProfessorDirectly(
             String name,
             String email,
@@ -599,6 +799,33 @@ class TurmaControllerIntegrationTest {
         return professorRepository.save(professor);
     }
 
+    private Aluno createAlunoDirectly(
+            String name,
+            String email,
+            String matricula,
+            String sexo,
+            boolean active
+    ) {
+        UserRole roleAluno = roleRepository.findUserRoleByName("ROLE_ALUNO")
+                .orElseThrow(() -> new IllegalStateException("ROLE_ALUNO não encontrada para teste."));
+
+        User user = new User();
+        user.setName(name);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode("123456"));
+        user.setActive(active);
+        user.setRoles(Set.of(roleAluno));
+
+        User savedUser = userRepository.save(user);
+
+        Aluno aluno = new Aluno();
+        aluno.setUser(savedUser);
+        aluno.setMatricula(matricula);
+        aluno.setSexo(sexo);
+
+        return alunoRepository.save(aluno);
+    }
+
     private Turma createTurmaDirectly(
             String nome,
             int ano,
@@ -624,4 +851,11 @@ class TurmaControllerIntegrationTest {
         profTurma.setTurma(turma);
         profTurmaRepository.save(profTurma);
     }
+
+        private void linkAlunoTurma(Aluno aluno, Turma turma) {
+                AlunoTurma alunoTurma = new AlunoTurma();
+                alunoTurma.setAluno(aluno);
+                alunoTurma.setTurma(turma);
+                alunoTurmaRepository.save(alunoTurma);
+        }
 }
