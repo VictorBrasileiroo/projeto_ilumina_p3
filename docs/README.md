@@ -17,7 +17,8 @@ Este README explica o que existe em cada pasta de `docs/` e onde encontrar os do
 ## 2. Documentos principais no estado atual
 
 Arquitetura:
-- `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md` (snapshot anterior)
 - `docs/arquitetura/2026-04-04-decisao-modelagem-user-professor-aluno.md` (decisao canonica de modelagem)
 
 Feature de Professor:
@@ -26,6 +27,9 @@ Feature de Professor:
 Feature de Turma:
 - `docs/features/2026-04-05-feature-modulo-turma-crud-v1.md`
 
+Feature de Aluno + Matriculas:
+- `docs/features/2026-04-07-feature-modulo-aluno-turma-matriculas.md`
+
 Feature de JWT (refresh + claims):
 - `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
 
@@ -33,6 +37,7 @@ API do modulo de Professor:
 - `docs/api/2026-04-05-api-modulo-professor.md`
 
 API do modulo de Turma:
+- `docs/api/2026-04-07-api-modulo-aluno-turma-matriculas.md` (versao mais recente para frontend)
 - `docs/api/2026-04-05-api-modulo-turma.md`
 
 API de autenticacao (JWT):
@@ -45,6 +50,7 @@ Historico de implementacao:
 - `docs/etapas/2026-04-05-04-modulo-professor-crud-inicial.md`
 - `docs/etapas/2026-04-05-05-evolucao-jwt-refresh-claims.md`
 - `docs/etapas/2026-04-05-06-modulo-turma-crud-v1.md`
+- `docs/etapas/2026-04-07-07-modulo-aluno-turma-matriculas.md`
 
 Guias de processo:
 - `docs/guias/01.Guia-Branches.md`
@@ -55,7 +61,7 @@ Guias de processo:
 ## 3. Como navegar rapido
 
 Se voce quer entender o sistema hoje:
-1. Leia `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md`.
+1. Leia `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md`.
 2. Leia a feature alvo em `docs/features/`.
 3. Consulte `docs/etapas/` para entender o historico de implementacao.
 
