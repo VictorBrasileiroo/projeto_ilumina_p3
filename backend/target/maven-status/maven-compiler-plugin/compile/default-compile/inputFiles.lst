@@ -1,6 +1,7 @@
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\CorsConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\JpaAuditingConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\JwtProperties.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\LlmProperties.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\OpenApiConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Aluno\AlunoController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Auth\AuthController.java
@@ -16,6 +17,8 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\Aut
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\LoginRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\RefreshTokenRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\RegisterRequest.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\llm\AlternativaValidada.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\llm\QuestaoValidada.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\CreateProfessorRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\CreateProfessorResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\ProfessorResponse.java
@@ -54,6 +57,8 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\User\
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\User\UserRole.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\exception\BusinessException.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\exception\GlobalExceptionHandler.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\exception\LlmUnavailableException.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\exception\RateLimitExceededException.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\exception\ResourceNotFoundException.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\IluminaBackendApplication.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Aluno\AlunoRepository.java
@@ -74,6 +79,10 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\security\Res
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\security\SecurityConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Aluno\AlunoService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Auth\AuthSeervice.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\LlmService.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\LlmServiceImpl.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\LlmValidationService.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\RateLimiterService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Professor\ProfessorService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Prova\ProvaService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Seed\DataInitializerRole.java

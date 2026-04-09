@@ -3,6 +3,7 @@ package br.com.ilumina.controller.Prova;
 import br.com.ilumina.dto.prova.CreateAlternativaRequest;
 import br.com.ilumina.dto.prova.CreateProvaRequest;
 import br.com.ilumina.dto.prova.CreateQuestaoRequest;
+import br.com.ilumina.dto.prova.GerarQuestoesRequest;
 import br.com.ilumina.dto.prova.UpdateAlternativaRequest;
 import br.com.ilumina.dto.prova.UpdateProvaRequest;
 import br.com.ilumina.dto.prova.UpdateQuestaoRequest;
@@ -17,6 +18,7 @@ import br.com.ilumina.entity.Turma.Turma;
 import br.com.ilumina.entity.Turma.Turno;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.entity.User.UserRole;
+import br.com.ilumina.exception.LlmUnavailableException;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.Prova.AlternativaRepository;
 import br.com.ilumina.repository.Prova.ProvaRepository;
@@ -25,6 +27,8 @@ import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
 import br.com.ilumina.repository.User.RoleRepository;
 import br.com.ilumina.repository.User.UserRepository;
+import br.com.ilumina.service.Llm.LlmServiceMock;
+import br.com.ilumina.service.Llm.RateLimiterService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -88,8 +92,16 @@ class ProvaControllerIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+        @Autowired
+        private LlmServiceMock llmServiceMock;
+
+        @Autowired
+        private RateLimiterService rateLimiterService;
+
     @AfterEach
     void cleanup() {
+                llmServiceMock.reset();
+                rateLimiterService.resetForTests();
         alternativaRepository.deleteAll();
         questaoRepository.deleteAll();
         provaRepository.deleteAll();
@@ -743,6 +755,339 @@ class ProvaControllerIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void gerarQuestoesComMockValidoShouldReturnCreatedAndPersistir() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.ok@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12A", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova LLM OK");
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Revolução Francesa", 2);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.ok@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.questoes.length()").value(2));
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(2);
+    }
+
+        @Test
+        void gerarQuestoesSemQuantidadeShouldUsarRestantePlanejado() throws Exception {
+                Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.restante@ilumina.com", "História", "Masculino", true);
+                Turma turma = createTurmaDirectly("12A-REST", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+                linkProfessorTurma(owner, turma);
+
+                Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Restante", 3);
+                createQuestaoDirectly(prova, "Questão já existente", "A", 1);
+
+                GerarQuestoesRequest request = new GerarQuestoesRequest("Revolução Francesa", null);
+
+                mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                                                .with(user("prova.llm.restante@ilumina.com").roles("PROFESSOR"))
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.questoes.length()").value(3));
+
+                assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(3);
+        }
+
+    @Test
+    void gerarQuestoesSemQuantidadeComRestanteMaiorQueLimitePorChamadaShouldGerarEmLotesAutomaticos() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.restante.25@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12A-REST-25", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Restante 25", 25);
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", null);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.restante.25@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.questoes.length()").value(20));
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(20);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.restante.25@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.questoes.length()").value(25));
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(25);
+    }
+
+    @Test
+    void gerarQuestoesParaProvaPublicadaShouldReturnBadRequest() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.pub@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12B", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.PUBLICADA, "Prova Publicada");
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.pub@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void gerarQuestoesParaProvaDeOutroProfessorShouldReturnForbidden() throws Exception {
+        Professor owner = createProfessorDirectly("Professor Dono", "prova.llm.owner@ilumina.com", "História", "Masculino", true);
+        createProfessorDirectly("Professor Outro", "prova.llm.outro@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12C", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Restrita");
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.outro@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void gerarQuestoesComJsonMalformadoShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.json.invalido@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12D", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova JSON Inválido");
+
+        llmServiceMock.enfileirarResposta("{json-invalido");
+        llmServiceMock.enfileirarResposta("{json-invalido");
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.json.invalido@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isZero();
+    }
+
+    @Test
+    void gerarQuestoesComGabaritoInvalidoShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.gabarito@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12E", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Gabarito Inválido");
+
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComGabaritoInvalidoParaTeste());
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComGabaritoInvalidoParaTeste());
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.gabarito@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isZero();
+    }
+
+    @Test
+    void gerarQuestoesComQuestoesDuplicadasShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.duplicadas@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12F", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Duplicada");
+
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComQuestoesDuplicadasParaTeste());
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComQuestoesDuplicadasParaTeste());
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 2);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.duplicadas@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isZero();
+    }
+
+    @Test
+    void gerarQuestoesComZeroAlternativasShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.zero.alternativas@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12G", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Zero Alternativas");
+
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComZeroAlternativasParaTeste());
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonComZeroAlternativasParaTeste());
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.zero.alternativas@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isZero();
+    }
+
+    @Test
+    void gerarQuestoesComFallbackValidoShouldReturnCreatedComPersistencia() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.fallback@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12H", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Fallback");
+
+        llmServiceMock.enfileirarResposta("{json-invalido");
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonValidoParaTeste(2));
+
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 2);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.fallback@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.questoes.length()").value(2));
+
+        assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(2);
+    }
+
+        @Test
+        void gerarQuestoesComLlmIndisponivelShouldReturnServiceUnavailable() throws Exception {
+                Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.503@ilumina.com", "História", "Masculino", true);
+                Turma turma = createTurmaDirectly("12H-503", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+                linkProfessorTurma(owner, turma);
+
+                Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova LLM 503");
+                llmServiceMock.forcarExcecao(new LlmUnavailableException("LLM indisponível"));
+
+                GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+                mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                                                .with(user("prova.llm.503@ilumina.com").roles("PROFESSOR"))
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isServiceUnavailable());
+        }
+
+    @Test
+    void gerarQuestoesAcimaDoRateLimitShouldReturnTooManyRequests() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.ratelimit@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12I", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Rate Limit");
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 1);
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                            .with(user("prova.llm.ratelimit@ilumina.com").roles("PROFESSOR"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.ratelimit@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void gerarQuestoesComErroDeElegibilidadeNaoDeveConsumirRateLimit() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.ratelimit.elegibilidade@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12I-RL", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Rate Limit Elegibilidade", 10);
+
+        GerarQuestoesRequest invalida = new GerarQuestoesRequest("Tema", 20);
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.ratelimit.elegibilidade@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalida)))
+                .andExpect(status().isBadRequest());
+
+        GerarQuestoesRequest valida = new GerarQuestoesRequest("Tema", 1);
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                            .with(user("prova.llm.ratelimit.elegibilidade@ilumina.com").roles("PROFESSOR"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(valida)))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.ratelimit.elegibilidade@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(valida)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+        @Test
+        void gerarQuestoesComQuantidadeMaiorQueRestanteShouldReturnBadRequest() throws Exception {
+                Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.restante.max@ilumina.com", "História", "Masculino", true);
+                Turma turma = createTurmaDirectly("12I-REST", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+                linkProfessorTurma(owner, turma);
+
+                Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Restante Max", 2);
+                createQuestaoDirectly(prova, "Questão já existente", "A", 1);
+
+                GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 2);
+
+                mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                                                .with(user("prova.llm.restante.max@ilumina.com").roles("PROFESSOR"))
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("A quantidade solicitada ultrapassa o restante planejado para a prova."));
+
+                assertThat(questaoRepository.countByProvaId(prova.getId())).isEqualTo(1);
+        }
+
+    @Test
+    void fluxoCompletoCriarGerarPublicarShouldReturnOk() throws Exception {
+        Professor owner = createProfessorDirectly("Professor LLM", "prova.llm.fluxo@ilumina.com", "História", "Masculino", true);
+        Turma turma = createTurmaDirectly("12J", 2, Turno.MATUTINO, Ensino.FUNDAMENTAL, 30, true);
+        linkProfessorTurma(owner, turma);
+
+        Prova prova = createProvaDirectly(owner, turma, StatusProva.RASCUNHO, "Prova Fluxo Completo");
+        GerarQuestoesRequest request = new GerarQuestoesRequest("Tema", 2);
+
+        mockMvc.perform(post("/api/v1/provas/{id}/gerar-questoes", prova.getId())
+                        .with(user("prova.llm.fluxo@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.questoes.length()").value(2));
+
+        mockMvc.perform(patch("/api/v1/provas/{id}/publicar", prova.getId())
+                        .with(user("prova.llm.fluxo@ilumina.com").roles("PROFESSOR")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PUBLICADA"));
+    }
+
     private Professor createProfessorDirectly(
             String name,
             String email,
@@ -816,11 +1161,15 @@ class ProvaControllerIntegrationTest {
     }
 
     private Prova createProvaDirectly(Professor professor, Turma turma, StatusProva status, String titulo) {
+                return createProvaDirectly(professor, turma, status, titulo, 10);
+        }
+
+        private Prova createProvaDirectly(Professor professor, Turma turma, StatusProva status, String titulo, Integer qntQuestoes) {
         Prova prova = new Prova();
         prova.setTitulo(titulo);
         prova.setDescricao("Descrição");
         prova.setDisciplina("Disciplina");
-        prova.setQntQuestoes(10);
+                prova.setQntQuestoes(qntQuestoes);
         prova.setStatus(status);
         prova.setProfessor(professor);
         prova.setTurma(turma);

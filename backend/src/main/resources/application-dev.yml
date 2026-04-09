@@ -28,3 +28,11 @@ management:
 logging:
   level:
     org.hibernate.SQL: DEBUG
+
+llm:
+  provider: gemini
+  api-key: ${GOOGLE_API_KEY:${GEMINI_API_KEY:}}
+  model: gemini-2.5-flash-lite
+  timeout-seconds: 30
+  max-output-tokens: 4000
+  rate-limit-per-minute: 5

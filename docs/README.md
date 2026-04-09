@@ -17,7 +17,8 @@ Este README explica o que existe em cada pasta de `docs/` e onde encontrar os do
 ## 2. Documentos principais no estado atual
 
 Arquitetura:
-- `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-2.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-3.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-2.md`
 - `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-1.md` (snapshot do bloco anterior)
 - `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md`
 - `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md` (snapshot anterior)
@@ -35,6 +36,7 @@ Feature de Aluno + Matriculas:
 Feature de Avaliacoes:
 - `docs/features/2026-04-09-feature-modulo-avaliacoes-bloco-1.md`
 - `docs/features/2026-04-09-feature-modulo-avaliacoes-bloco-2-api-publicacao.md`
+- `docs/features/2026-04-09-feature-modulo-avaliacoes-bloco-3-geracao-llm.md`
 
 Feature de JWT (refresh + claims):
 - `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
@@ -48,6 +50,7 @@ API do modulo de Turma:
 
 API do modulo de Avaliacoes:
 - `docs/api/2026-04-09-api-modulo-avaliacoes-bloco-2-api-publicacao.md`
+- `docs/api/2026-04-09-api-modulo-avaliacoes-bloco-3-geracao-llm.md`
 
 API de autenticacao (JWT):
 - `docs/api/2026-04-05-api-auth-jwt-refresh-claims.md`
@@ -62,17 +65,19 @@ Historico de implementacao:
 - `docs/etapas/2026-04-07-07-modulo-aluno-turma-matriculas.md`
 - `docs/etapas/2026-04-09-08-modulo-avaliacoes-bloco-1-fundacao.md`
 - `docs/etapas/2026-04-09-09-modulo-avaliacoes-bloco-2-api-publicacao.md`
+- `docs/etapas/2026-04-09-10-modulo-avaliacoes-bloco-3-geracao-llm.md`
 
 Guias de processo:
 - `docs/guias/01.Guia-Branches.md`
 - `docs/guias/02.Template-PR.md`
 - `docs/guias/03.Bloqueio-Páginas.md`
 - `docs/guias/04.Guia-Tokens-Refresh-Claims.md`
+- `docs/guias/05.Guia-Geracao-Questoes-LLM.md`
 
 ## 3. Como navegar rapido
 
 Se voce quer entender o sistema hoje:
-1. Leia `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-2.md`.
+1. Leia `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-3.md`.
 2. Leia a feature alvo em `docs/features/`.
 3. Consulte `docs/etapas/` para entender o historico de implementacao.
 

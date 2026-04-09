@@ -3,6 +3,7 @@ package br.com.ilumina.controller.Prova;
 import br.com.ilumina.dto.prova.AlternativaResponse;
 import br.com.ilumina.dto.prova.CreateProvaRequest;
 import br.com.ilumina.dto.prova.CreateQuestaoRequest;
+import br.com.ilumina.dto.prova.GerarQuestoesRequest;
 import br.com.ilumina.dto.prova.ProvaDetalheResponse;
 import br.com.ilumina.dto.prova.ProvaResponse;
 import br.com.ilumina.dto.prova.QuestaoResponse;
@@ -256,6 +257,31 @@ public class ProvaController {
         );
 
         return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/{id}/gerar-questoes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<ProvaDetalheResponse>> gerarQuestoes(
+            @PathVariable UUID id,
+            @Valid @RequestBody GerarQuestoesRequest request,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        ProvaDetalheResponse response = provaService.gerarQuestoes(
+                id,
+                request,
+                authentication.getName(),
+                isAdmin(authentication)
+        );
+
+        ApiResponse<ProvaDetalheResponse> body = ApiResponse.sucess(
+                HttpStatus.CREATED.value(),
+                "Questões geradas com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     private boolean isAdmin(Authentication authentication) {

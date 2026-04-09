@@ -1,9 +1,11 @@
 package br.com.ilumina.service.Prova;
 
+import br.com.ilumina.dto.llm.QuestaoValidada;
 import br.com.ilumina.dto.prova.AlternativaResponse;
 import br.com.ilumina.dto.prova.CreateAlternativaRequest;
 import br.com.ilumina.dto.prova.CreateProvaRequest;
 import br.com.ilumina.dto.prova.CreateQuestaoRequest;
+import br.com.ilumina.dto.prova.GerarQuestoesRequest;
 import br.com.ilumina.dto.prova.ProvaDetalheResponse;
 import br.com.ilumina.dto.prova.ProvaResponse;
 import br.com.ilumina.dto.prova.QuestaoResponse;
@@ -26,11 +28,20 @@ import br.com.ilumina.repository.Prova.QuestaoRepository;
 import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
 import br.com.ilumina.repository.User.UserRepository;
+import br.com.ilumina.service.Llm.LlmService;
+import br.com.ilumina.service.Llm.LlmValidationService;
+import br.com.ilumina.service.Llm.RateLimiterService;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -42,6 +53,10 @@ import java.util.UUID;
 @Service
 public class ProvaService {
 
+    private static final String PROMPT_MAIN_PATH = "classpath:prompts/gerar-questoes-main.txt";
+    private static final String PROMPT_FALLBACK_PATH = "classpath:prompts/gerar-questoes-fallback.txt";
+    private static final int QUANTIDADE_MAXIMA_POR_CHAMADA = 20;
+
     private final ProvaRepository provaRepository;
     private final QuestaoRepository questaoRepository;
     private final AlternativaRepository alternativaRepository;
@@ -49,6 +64,11 @@ public class ProvaService {
     private final TurmaRepository turmaRepository;
     private final ProfTurmaRepository profTurmaRepository;
     private final UserRepository userRepository;
+    private final LlmService llmService;
+    private final LlmValidationService llmValidationService;
+    private final RateLimiterService rateLimiterService;
+    private final String promptTemplateMain;
+    private final String promptTemplateFallback;
 
     public ProvaService(
             ProvaRepository provaRepository,
@@ -57,7 +77,11 @@ public class ProvaService {
             ProfessorRepository professorRepository,
             TurmaRepository turmaRepository,
             ProfTurmaRepository profTurmaRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            LlmService llmService,
+            LlmValidationService llmValidationService,
+            RateLimiterService rateLimiterService,
+            ResourceLoader resourceLoader
     ) {
         this.provaRepository = provaRepository;
         this.questaoRepository = questaoRepository;
@@ -66,6 +90,11 @@ public class ProvaService {
         this.turmaRepository = turmaRepository;
         this.profTurmaRepository = profTurmaRepository;
         this.userRepository = userRepository;
+        this.llmService = llmService;
+        this.llmValidationService = llmValidationService;
+        this.rateLimiterService = rateLimiterService;
+        this.promptTemplateMain = carregarPromptTemplate(resourceLoader, PROMPT_MAIN_PATH);
+        this.promptTemplateFallback = carregarPromptTemplate(resourceLoader, PROMPT_FALLBACK_PATH);
     }
 
     @Transactional
@@ -398,6 +427,29 @@ public class ProvaService {
         return toProvaResponse(saved);
     }
 
+    @Transactional
+    public ProvaDetalheResponse gerarQuestoes(
+            UUID provaId,
+            GerarQuestoesRequest request,
+            String currentUserEmail,
+            boolean isAdmin
+    ) {
+        Prova prova = findProvaById(provaId);
+        validateOwnership(prova, currentUserEmail, isAdmin);
+        validateProvaEmRascunho(prova, "Apenas provas em rascunho podem gerar questões." );
+
+        String tema = normalizeRequired(request.tema(), "O tema é obrigatório.");
+        int quantidade = resolverQuantidadeParaGeracao(prova, request.quantidade());
+
+        // Consome cota apenas apos as validacoes de elegibilidade.
+        validarRateLimitGeracao(currentUserEmail);
+
+        List<QuestaoValidada> questoesValidadas = executarGeracaoComFallback(tema, quantidade);
+        persistirQuestoesGeradas(prova, questoesValidadas);
+
+        return detalhar(provaId, currentUserEmail, isAdmin);
+    }
+
     private void validateProvaParaPublicacao(UUID provaId) {
         List<Questao> questoes = questaoRepository.findByProvaIdOrderByOrdem(provaId);
 
@@ -422,6 +474,104 @@ public class ProvaService {
             }
 
             validateGabaritoMatchesAlternativas(questao.getGabarito(), letras);
+        }
+    }
+
+    private int resolverQuantidadeParaGeracao(Prova prova, Integer quantidadeSolicitada) {
+        Integer quantidadePlanejada = prova.getQntQuestoes();
+        if (quantidadePlanejada == null || quantidadePlanejada < 1) {
+            throw new BusinessException("Defina a quantidade de questões da prova antes de usar a geração automática.");
+        }
+
+        long totalAtual = questaoRepository.countByProvaId(prova.getId());
+        int restante = quantidadePlanejada - Math.toIntExact(totalAtual);
+
+        if (restante <= 0) {
+            throw new BusinessException("A prova já atingiu a quantidade planejada de questões.");
+        }
+
+        if (quantidadeSolicitada == null) {
+            return Math.min(restante, QUANTIDADE_MAXIMA_POR_CHAMADA);
+        }
+
+        if (quantidadeSolicitada > restante) {
+            throw new BusinessException("A quantidade solicitada ultrapassa o restante planejado para a prova.");
+        }
+
+        return quantidadeSolicitada;
+    }
+
+    private List<QuestaoValidada> executarGeracaoComFallback(String tema, int quantidade) {
+        String promptPrincipal = montarPrompt(promptTemplateMain, tema, quantidade);
+        String jsonRespostaPrincipal = llmService.gerarQuestoes(promptPrincipal, quantidade);
+
+        try {
+            return llmValidationService.validarEParsear(jsonRespostaPrincipal, quantidade);
+        } catch (BusinessException ex) {
+            String promptFallback = montarPrompt(promptTemplateFallback, tema, quantidade);
+            String jsonRespostaFallback = llmService.gerarQuestoes(promptFallback, quantidade);
+
+            try {
+                return llmValidationService.validarEParsear(jsonRespostaFallback, quantidade);
+            } catch (BusinessException ignored) {
+                throw new BusinessException("A IA retornou uma resposta inválida. Tente novamente.");
+            }
+        }
+    }
+
+    private void persistirQuestoesGeradas(Prova prova, List<QuestaoValidada> questoesValidadas) {
+        int proximaOrdem = questaoRepository.findByProvaIdOrderByOrdem(prova.getId())
+                .stream()
+                .map(Questao::getOrdem)
+                .filter(java.util.Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
+        for (QuestaoValidada questaoValidada : questoesValidadas) {
+            Questao questao = new Questao();
+            questao.setProva(prova);
+            questao.setEnunciado(normalizeRequired(questaoValidada.enunciado(), "A IA gerou uma questão sem enunciado válido."));
+            questao.setGabarito(String.valueOf(questaoValidada.gabarito()));
+            questao.setPontuacao(questaoValidada.pontuacao() != null ? questaoValidada.pontuacao() : BigDecimal.ONE);
+            questao.setOrdem(proximaOrdem++);
+
+            List<Alternativa> alternativas = questaoValidada.alternativas()
+                    .stream()
+                    .sorted(Comparator.comparing(alternativa -> alternativa.letra()))
+                    .map(alternativaValidada -> {
+                        Alternativa alternativa = new Alternativa();
+                        alternativa.setQuestao(questao);
+                        alternativa.setLetra(String.valueOf(alternativaValidada.letra()));
+                        alternativa.setTexto(normalizeRequired(
+                                alternativaValidada.texto(),
+                                "A IA gerou uma alternativa com texto inválido."
+                        ));
+                        return alternativa;
+                    })
+                    .toList();
+
+            questao.setAlternativas(new ArrayList<>(alternativas));
+            questaoRepository.save(questao);
+        }
+    }
+
+    private void validarRateLimitGeracao(String currentUserEmail) {
+        rateLimiterService.validarLimiteOuLancar(currentUserEmail);
+    }
+
+    private String montarPrompt(String template, String tema, int quantidade) {
+        return template
+                .replace("{{TEMA}}", tema)
+                .replace("{{QUANTIDADE}}", String.valueOf(quantidade));
+    }
+
+    private String carregarPromptTemplate(ResourceLoader resourceLoader, String path) {
+        Resource resource = resourceLoader.getResource(path);
+
+        try (var inputStream = resource.getInputStream()) {
+            return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Não foi possível carregar o template de prompt: " + path, ex);
         }
     }
 

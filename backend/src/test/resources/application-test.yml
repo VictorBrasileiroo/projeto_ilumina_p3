@@ -19,3 +19,11 @@ jwt:
   secret: testsecretkeyiluminaverylongandsecure12345
   expiration: 86400000
   refresh-expiration: 604800000
+
+llm:
+  provider: gemini
+  api-key: test-key
+  model: gemini-2.5-flash-lite
+  timeout-seconds: 30
+  max-output-tokens: 4000
+  rate-limit-per-minute: 5
