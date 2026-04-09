@@ -60,3 +60,10 @@ pnpm-debug.log*
 docs/lembretes/
 .vscode/
 backend/.env
+PROTOCOL.md
+CLAUDE.md
+.github/copilot-instructions.md
+
+Tasks/
+
+docs/planejamento/2026-04-07-guia-implementacao-modulo-gestao-avaliacoes.md
