@@ -17,7 +17,9 @@ Este README explica o que existe em cada pasta de `docs/` e onde encontrar os do
 ## 2. Documentos principais no estado atual
 
 Arquitetura:
-- `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-2.md` (snapshot mais recente)
+- `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-1.md` (snapshot do bloco anterior)
+- `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md`
 - `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md` (snapshot anterior)
 - `docs/arquitetura/2026-04-04-decisao-modelagem-user-professor-aluno.md` (decisao canonica de modelagem)
 
@@ -30,6 +32,10 @@ Feature de Turma:
 Feature de Aluno + Matriculas:
 - `docs/features/2026-04-07-feature-modulo-aluno-turma-matriculas.md`
 
+Feature de Avaliacoes:
+- `docs/features/2026-04-09-feature-modulo-avaliacoes-bloco-1.md`
+- `docs/features/2026-04-09-feature-modulo-avaliacoes-bloco-2-api-publicacao.md`
+
 Feature de JWT (refresh + claims):
 - `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
 
@@ -39,6 +45,9 @@ API do modulo de Professor:
 API do modulo de Turma:
 - `docs/api/2026-04-07-api-modulo-aluno-turma-matriculas.md` (versao mais recente para frontend)
 - `docs/api/2026-04-05-api-modulo-turma.md`
+
+API do modulo de Avaliacoes:
+- `docs/api/2026-04-09-api-modulo-avaliacoes-bloco-2-api-publicacao.md`
 
 API de autenticacao (JWT):
 - `docs/api/2026-04-05-api-auth-jwt-refresh-claims.md`
@@ -51,6 +60,8 @@ Historico de implementacao:
 - `docs/etapas/2026-04-05-05-evolucao-jwt-refresh-claims.md`
 - `docs/etapas/2026-04-05-06-modulo-turma-crud-v1.md`
 - `docs/etapas/2026-04-07-07-modulo-aluno-turma-matriculas.md`
+- `docs/etapas/2026-04-09-08-modulo-avaliacoes-bloco-1-fundacao.md`
+- `docs/etapas/2026-04-09-09-modulo-avaliacoes-bloco-2-api-publicacao.md`
 
 Guias de processo:
 - `docs/guias/01.Guia-Branches.md`
@@ -61,7 +72,7 @@ Guias de processo:
 ## 3. Como navegar rapido
 
 Se voce quer entender o sistema hoje:
-1. Leia `docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md`.
+1. Leia `docs/arquitetura/2026-04-09-estado-atual-do-sistema-modulo-avaliacoes-bloco-2.md`.
 2. Leia a feature alvo em `docs/features/`.
 3. Consulte `docs/etapas/` para entender o historico de implementacao.
 

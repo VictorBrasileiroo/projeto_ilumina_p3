@@ -13,4 +13,8 @@ public interface QuestaoRepository extends JpaRepository<Questao, UUID> {
     List<Questao> findByProvaIdOrderByOrdem(UUID provaId);
 
     long countByProvaId(UUID provaId);
+
+    boolean existsByProvaIdAndOrdem(UUID provaId, Integer ordem);
+
+    boolean existsByProvaIdAndOrdemAndIdNot(UUID provaId, Integer ordem, UUID id);
 }

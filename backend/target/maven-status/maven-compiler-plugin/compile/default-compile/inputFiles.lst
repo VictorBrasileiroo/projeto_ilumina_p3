@@ -5,6 +5,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\OpenA
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Aluno\AlunoController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Auth\AuthController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Professor\ProfessorController.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Prova\ProvaController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Suport\HealthController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Turma\TurmaController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\aluno\AlunoResponse.java
@@ -74,5 +75,6 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\security\Sec
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Aluno\AlunoService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Auth\AuthSeervice.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Professor\ProfessorService.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Prova\ProvaService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Seed\DataInitializerRole.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Turma\TurmaService.java
