@@ -6,6 +6,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\OpenA
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Aluno\AlunoController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Auth\AuthController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Professor\ProfessorController.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Prova\AlunoProvaController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Prova\ProvaController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Suport\HealthController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Turma\TurmaController.java
@@ -23,14 +24,22 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professo
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\CreateProfessorResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\ProfessorResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\UpdateProfessorRequest.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\AlternativaAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\AlternativaResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateAlternativaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateProvaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateQuestaoRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\GerarQuestoesRequest.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\ProvaAlunoResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\ProvaDetalheAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\ProvaDetalheResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\ProvaResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\QuestaoAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\QuestaoResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\QuestaoResultadoResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\RespostaItemRequest.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\ResultadoProvaResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\SubmissaoRespostasRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\UpdateAlternativaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\UpdateProvaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\UpdateQuestaoRequest.java
@@ -45,8 +54,10 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Aluno
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\BaseEntity.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Professor\Professor.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\Alternativa.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\ItemRespostaAluno.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\Prova.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\Questao.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\RespostaAluno.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Prova\StatusProva.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Turma\AlunoTurma.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Turma\Ensino.java
@@ -66,6 +77,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\P
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Prova\AlternativaRepository.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Prova\ProvaRepository.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Prova\QuestaoRepository.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Prova\RespostaAlunoRepository.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Turma\AlunoTurmaRepository.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Turma\ProfTurmaRepository.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\repository\Turma\TurmaRepository.java
@@ -84,6 +96,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\LlmValidationService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\RateLimiterService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Professor\ProfessorService.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Prova\AlunoProvaService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Prova\ProvaService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Seed\DataInitializerRole.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Turma\TurmaService.java
