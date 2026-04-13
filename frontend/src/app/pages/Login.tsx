@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import logoSvg from '../../imports/Logo_ilumina.svg';
+import logoSvg from '../../imports/ilumina_logo.svg';
 import { GraduationCap, BookOpen } from 'lucide-react';
 
 export default function Login() {
@@ -35,7 +35,7 @@ export default function Login() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] border border-white/5 rounded-full" />
 
           <div className="relative z-10 text-center max-w-md">
-            <img src={logoSvg} alt="Ilumina" className="h-16 mx-auto mb-10" />
+            <img src={logoSvg} alt="Ilumina" className="h-24 mx-auto mb-10" />
             <h1 className="text-[2rem] text-white mb-4" style={{ fontWeight: 700, lineHeight: 1.2 }}>
               Plataforma de Gestão Pedagógica
             </h1>
@@ -61,7 +61,7 @@ export default function Login() {
         <div className="flex-1 flex items-center justify-center p-8 bg-white">
           <div className="w-full max-w-[400px]">
             <div className="lg:hidden mb-8 text-center">
-              <img src={logoSvg} alt="Ilumina" className="h-12 mx-auto mb-3" />
+              <img src={logoSvg} alt="Ilumina" className="h-16 mx-auto mb-3" />
             </div>
 
             <div className="mb-8">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router';
-import logoSvg from '../../imports/Logo_ilumina.svg';
+import logoSvg from '../../imports/ilumina_logo.svg';
 import { BookOpen, Users, FileText, LayoutDashboard, LogOut, ChevronRight, X } from 'lucide-react';
 
 interface SidebarProps {
