@@ -1,10 +1,12 @@
-# Ilumina — Documentação Técnica de Projeto v2.0
+# Ilumina — Documentação Técnica de Projeto
+
+<img src='https://raw.githubusercontent.com/VictorBrasileiroo/projeto_ilumina_p3/refs/heads/develop/frontend/src/imports/banner.png'></img>
 
 > Plataforma web de apoio pedagógico para criação e gestão de avaliações e coleções de flashcards com geração automática de conteúdo via inteligência artificial.
 
-- **Status:** Em andamento — Mês 3 de 6
+- **Status:** Em andamento — Mês 4 de 6
 - **Fase atual:** Fase 1 — AB1
-- **Versão do documento:** 2.0 · 2025
+- **Versão do documento:** 2.0 · 2026
 
 ---
 
