@@ -1,6 +1,7 @@
 package br.com.ilumina.service.Llm;
 
 import br.com.ilumina.dto.llm.AlternativaValidada;
+import br.com.ilumina.dto.llm.FlashcardValidado;
 import br.com.ilumina.dto.llm.QuestaoValidada;
 import br.com.ilumina.exception.BusinessException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -85,6 +86,60 @@ public class LlmValidationService {
         }
 
         return questoesValidadas;
+    }
+
+    public List<FlashcardValidado> validarFlashcards(String jsonBruto, int quantidadeEsperada) {
+        JsonNode root;
+        try {
+            root = parseJson(jsonBruto);
+        } catch (BusinessException ex) {
+            throw invalidFlashcards("JSON invalido.");
+        }
+
+        JsonNode flashcardsNode = root.get("flashcards");
+        if (flashcardsNode == null || !flashcardsNode.isArray()) {
+            throw invalidFlashcards("campo raiz 'flashcards' ausente ou invalido.");
+        }
+
+        if (flashcardsNode.isEmpty()) {
+            throw invalidFlashcards("nenhum flashcard foi retornado.");
+        }
+
+        if (quantidadeEsperada > 0 && flashcardsNode.size() != quantidadeEsperada) {
+            throw invalidFlashcards("quantidade de flashcards diferente da solicitada.");
+        }
+
+        List<FlashcardValidado> flashcardsValidados = new ArrayList<>();
+        Set<String> frentesNormalizadas = new HashSet<>();
+
+        for (int i = 0; i < flashcardsNode.size(); i++) {
+            int posicao = i + 1;
+            JsonNode flashcardNode = flashcardsNode.get(i);
+
+            String textoFrente;
+            String textoVerso;
+            try {
+                textoFrente = extrairTextoObrigatorio(
+                        flashcardNode.get("textoFrente"),
+                        "flashcard com textoFrente vazio na posicao " + posicao + "."
+                );
+                textoVerso = extrairTextoObrigatorio(
+                        flashcardNode.get("textoVerso"),
+                        "flashcard com textoVerso vazio na posicao " + posicao + "."
+                );
+            } catch (BusinessException ex) {
+                throw invalidFlashcards(ex.getMessage());
+            }
+
+            String chaveFrente = textoFrente.toLowerCase(Locale.ROOT);
+            if (!frentesNormalizadas.add(chaveFrente)) {
+                throw invalidFlashcards("flashcards com textoFrente duplicado na mesma geracao.");
+            }
+
+            flashcardsValidados.add(new FlashcardValidado(textoFrente, textoVerso));
+        }
+
+        return flashcardsValidados;
     }
 
     private JsonNode parseJson(String jsonBruto) {
@@ -188,5 +243,9 @@ public class LlmValidationService {
         }
 
         return valor;
+    }
+
+    private BusinessException invalidFlashcards(String motivo) {
+        return new BusinessException("LLM retornou resposta invalida para flashcards: " + motivo);
     }
 }

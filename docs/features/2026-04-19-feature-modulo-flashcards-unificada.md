@@ -1,6 +1,6 @@
 # Feature Unificada - Modulo Flashcards
 
-Data: 2026-04-19  
+Data de atualizacao: 2026-04-20
 Escopo: consolidacao funcional do modulo Flashcards em arquivo unico (documento vivo)
 
 ---
@@ -9,11 +9,11 @@ Escopo: consolidacao funcional do modulo Flashcards em arquivo unico (documento 
 
 Consolidar em um unico documento a evolucao funcional do modulo Flashcards, reunindo:
 - fundacao de dominio;
-- API professor;
+- API professor/admin;
 - geracao automatica por IA;
 - visao de consumo para aluno.
 
-Este arquivo sera atualizado a cada bloco para evitar a necessidade de um documento agrupador no final.
+Este arquivo deve ser atualizado a cada bloco para evitar consolidacao manual no fim da trilha.
 
 ---
 
@@ -23,8 +23,8 @@ Sem o modulo Flashcards, a plataforma entrega apenas avaliacao formal.
 A feature resolve a trilha de revisao assincrona por turma, permitindo:
 1. criacao de colecoes pelo professor;
 2. adicao manual e/ou geracao por IA;
-3. publicacao para a turma;
-4. estudo pelo aluno em formato frente/verso.
+3. publicacao para turma;
+4. estudo em formato frente/verso.
 
 ---
 
@@ -34,7 +34,7 @@ A feature resolve a trilha de revisao assincrona por turma, permitindo:
 |---|---|---|
 | 1 | Entidades, repositorios e DTOs base | Concluido |
 | 2 | API professor/admin para CRUD e publicacao | Concluido |
-| 3 | Geracao LLM e validacao de resposta | Nao iniciado |
+| 3 | Geracao LLM e validacao de resposta | Concluido |
 | 4 | API aluno para listagem e detalhe | Nao iniciado |
 
 ---
@@ -54,59 +54,71 @@ A feature resolve a trilha de revisao assincrona por turma, permitindo:
 
 ### 4.3 Contratos DTO
 
-- DTOs de request/response em `dto/flashcard` para professor e aluno.
+- DTOs de request/response em `dto/flashcard`.
 - DTO interno `FlashcardValidado` em `dto/llm`.
 
 ### 4.4 API professor/admin (BLOCO 2)
 
-- `FlashcardController` em `/api/v1/colecoes`;
-- `FlashcardService` com CRUD de colecao/card manual;
-- publicar/despublicar colecao;
+- `FlashcardController` em `/api/v1/colecoes`.
+- `FlashcardService` com CRUD manual de colecao/cards.
+- publicar/despublicar colecao.
 - exclusao de colecao com cascade.
 
-### 4.5 Testes
+### 4.5 Geracao via LLM (BLOCO 3)
 
-- BLOCO 1: regressao global backend validada;
-- BLOCO 2: suite dedicada de integracao + regressao global backend validada.
+- prompt `gerar-flashcards-main.txt` adicionado em resources.
+- extensao de `LlmService`/`LlmServiceImpl` com `gerarFlashcards`.
+- `LlmValidationService.validarFlashcards` para payload com raiz `flashcards`.
+- endpoint `POST /api/v1/colecoes/{id}/gerar-flashcards`.
+- fluxo com ownership + `RASCUNHO` + rate limit + validacao antes de persistencia.
+
+### 4.6 Testes
+
+- suite de integracao de Flashcards ampliada para BLOCO 3.
+- cobertura de sucesso e caminhos operacionais criticos (`400`, `403`, `404`, `429`, `503`).
+- regressao de Provas preservada apos extensoes em camada LLM compartilhada.
 
 ---
 
-## 5. Regras de negocio alvo da feature
+## 5. Regras de negocio da feature
 
 - Colecao nasce em `RASCUNHO`.
-- Apenas professor criador pode mutar/publicar/excluir.
+- Apenas professor criador pode mutar/publicar/excluir (admin com bypass previsto).
 - Colecao publicada nao e editavel sem despublicar.
-- Aluno so visualiza colecoes publicadas de turmas em que esta matriculado.
 - `textoFrente` e `textoVerso` sao obrigatorios.
 - Ordem de exibicao dos cards e definida por `ordem`.
+- Geracao LLM so persiste quando payload valida estrutura e conteudo esperados.
 
 ---
 
 ## 6. Correcoes pos-review acumuladas
 
 Correcoes aplicadas no fechamento do BLOCO 1:
-1. Alinhamento documental da contagem de DTOs (`11 em dto/flashcard + 1 em dto/llm`).
-2. Registro explicito no DTO interno de que a ordem e derivada deterministicamente na camada de servico.
+1. alinhamento documental da contagem de DTOs;
+2. registro explicito de que a ordem no DTO interno e derivada no service.
 
 Correcoes aplicadas no fechamento do BLOCO 2:
-3. Alinhamento de contrato no cenario de professor nao vinculado a turma para erro de negocio `400`.
-4. Ampliacao da cobertura de integracao para cenarios de admin, `401` sem autenticacao e `PUT` de colecao em `RASCUNHO`/`PUBLICADA`.
+3. alinhamento de contrato no cenario de professor sem vinculo (`400`);
+4. ampliacao de cobertura para admin, `401` sem autenticacao e `PUT` em `RASCUNHO`/`PUBLICADA`.
+
+Correcoes aplicadas no fechamento do BLOCO 3:
+5. ajuste de mensagens de indisponibilidade na camada LLM para dominio correto (`questoes`/`flashcards`);
+6. ampliacao de cobertura de integracao para sucesso admin, `429` e `503` no endpoint de geracao.
 
 ---
 
 ## 7. Qualidade e validacao consolidada
 
-Evidencia atual:
-- BLOCO 1: regressao backend `136` testes, `0` falhas, `0` erros.
-- BLOCO 2: suite `FlashcardControllerIntegrationTest` com `23` testes, `0` falhas, `0` erros.
-- BLOCO 2: regressao backend `159` testes, `0` falhas, `0` erros.
+Evidencias recentes:
+- suite `FlashcardControllerIntegrationTest`: 32 testes, 0 falhas, 0 erros.
+- suite alvo de regressao (`LlmValidationServiceTest`, `FlashcardControllerIntegrationTest`, `ProvaControllerIntegrationTest`): 94 testes, 0 falhas, 0 erros.
 
 ---
 
 ## 8. Fora de escopo consolidado (ate o momento)
 
 - dashboard de desempenho de flashcards;
-- rastreamento de cards virados/estudados;
+- rastreamento de cards estudados;
 - classificacao dificil/facil (spaced repetition);
 - importacao de cards por arquivo;
 - flashcards com imagem.
@@ -115,9 +127,9 @@ Evidencia atual:
 
 ## 9. Riscos residuais conhecidos
 
-- risco de concorrencia na atribuicao de `ordem` em insercoes simultaneas de card (`max(ordem)+1`);
-- regras de consumo para aluno ainda dependentes do BLOCO 4;
-- regras de LLM ainda dependentes da implementacao do BLOCO 3.
+- risco de concorrencia na atribuicao de `ordem` em insercoes/geracoes simultaneas (`max(ordem)+1`);
+- ausencia de fallback de prompt para flashcards nesta rodada (decisao de escopo);
+- consumo por aluno ainda pendente de BLOCO 4.
 
 ---
 
@@ -127,17 +139,15 @@ Classificacao operacional atual:
 - em andamento.
 
 Estado:
-- fundacao tecnica e API professor/admin prontas;
-- faltam BLOCO 3 (LLM) e BLOCO 4 (visao aluno).
+- BLOCO 1, BLOCO 2 e BLOCO 3 concluidos;
+- falta BLOCO 4 (API aluno) para fechamento completo da trilha funcional.
 
 ---
 
 ## 11. Referencias de origem
 
-- `docs/planejamento/2026-04-13-guia-implementacao-modulo-flashcards.md`
-- `Tasks/bloco1-flashcard-fundacao-dominio/final_receipt.md`
-- `Tasks/bloco1-flashcard-fundacao-dominio/review_memo.md`
-- `Tasks/bloco1-flashcard-fundacao-dominio/execution_receipt.md`
-- `Tasks/bloco2-flashcard-professor/execution_receipt.md`
-- `Tasks/bloco2-flashcard-professor/review_memo.md`
-- `Tasks/bloco2-flashcard-professor/final_receipt.md`
+- docs/api/2026-04-19-api-modulo-flashcards-unificado.md
+- docs/arquitetura/2026-04-19-estado-atual-do-sistema-modulo-flashcards-geral.md
+- Tasks/bloco3-flashcard-llm/execution_receipt.md
+- Tasks/bloco3-flashcard-llm/review_memo.md
+- Tasks/bloco3-flashcard-llm/final_receipt.md

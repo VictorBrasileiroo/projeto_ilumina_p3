@@ -1,5 +1,6 @@
 package br.com.ilumina.service.Llm;
 
+import br.com.ilumina.dto.llm.FlashcardValidado;
 import br.com.ilumina.dto.llm.QuestaoValidada;
 import br.com.ilumina.exception.BusinessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -283,5 +284,108 @@ class LlmValidationServiceTest {
         assertThatThrownBy(() -> llmValidationService.validarEParsear(json, 1))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("texto vazio");
+    }
+
+    @Test
+    void validarFlashcardsJsonValidoDeveRetornarLista() {
+        String jsonValido = """
+                {
+                  "flashcards": [
+                    {
+                      "textoFrente": "Frente 1",
+                      "textoVerso": "Verso 1"
+                    },
+                    {
+                      "textoFrente": "Frente 2",
+                      "textoVerso": "Verso 2"
+                    }
+                  ]
+                }
+                """;
+
+        List<FlashcardValidado> flashcards = llmValidationService.validarFlashcards(jsonValido, 2);
+
+        assertThat(flashcards).hasSize(2);
+        assertThat(flashcards.getFirst().textoFrente()).isEqualTo("Frente 1");
+    }
+
+    @Test
+    void validarFlashcardsJsonMalformadoDeveLancarBusinessException() {
+        String jsonMalformado = "{\"flashcards\": [";
+
+        assertThatThrownBy(() -> llmValidationService.validarFlashcards(jsonMalformado, 1))
+                .isInstanceOf(BusinessException.class)
+          .hasMessageContaining("resposta invalida para flashcards");
+    }
+
+    @Test
+    void validarFlashcardsSemRaizFlashcardsDeveLancarBusinessException() {
+        String jsonSemRaiz = """
+                {
+                  "resultado": []
+                }
+                """;
+
+        assertThatThrownBy(() -> llmValidationService.validarFlashcards(jsonSemRaiz, 1))
+                .isInstanceOf(BusinessException.class)
+    .hasMessageContaining("campo raiz 'flashcards' ausente ou invalido");
+    }
+
+    @Test
+    void validarFlashcardsComQuantidadeDiferenteDeveLancarBusinessException() {
+        String jsonQuantidadeInvalida = """
+                {
+                  "flashcards": [
+                    {
+                      "textoFrente": "Frente unica",
+                      "textoVerso": "Verso unico"
+                    }
+                  ]
+                }
+                """;
+
+        assertThatThrownBy(() -> llmValidationService.validarFlashcards(jsonQuantidadeInvalida, 2))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("quantidade de flashcards");
+    }
+
+    @Test
+    void validarFlashcardsComTextoFrenteVazioDeveLancarBusinessException() {
+        String jsonFrenteVazia = """
+                {
+                  "flashcards": [
+                    {
+                      "textoFrente": " ",
+                      "textoVerso": "Verso valido"
+                    }
+                  ]
+                }
+                """;
+
+        assertThatThrownBy(() -> llmValidationService.validarFlashcards(jsonFrenteVazia, 1))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("textoFrente");
+    }
+
+    @Test
+    void validarFlashcardsComTextoFrenteDuplicadoDeveLancarBusinessException() {
+        String jsonDuplicado = """
+                {
+                  "flashcards": [
+                    {
+                      "textoFrente": "Frente repetida",
+                      "textoVerso": "Verso 1"
+                    },
+                    {
+                      "textoFrente": "Frente repetida",
+                      "textoVerso": "Verso 2"
+                    }
+                  ]
+                }
+                """;
+
+        assertThatThrownBy(() -> llmValidationService.validarFlashcards(jsonDuplicado, 2))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("textoFrente duplicado");
     }
 }

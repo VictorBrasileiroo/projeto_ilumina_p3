@@ -5,6 +5,7 @@ import br.com.ilumina.dto.flashcard.ColecaoResponse;
 import br.com.ilumina.dto.flashcard.CreateColecaoRequest;
 import br.com.ilumina.dto.flashcard.CreateFlashcardRequest;
 import br.com.ilumina.dto.flashcard.FlashcardResponse;
+import br.com.ilumina.dto.flashcard.GerarFlashcardsRequest;
 import br.com.ilumina.dto.flashcard.UpdateColecaoRequest;
 import br.com.ilumina.dto.flashcard.UpdateFlashcardRequest;
 import br.com.ilumina.dto.shared.ApiResponse;
@@ -182,6 +183,31 @@ public class FlashcardController {
         ApiResponse<FlashcardResponse> body = ApiResponse.sucess(
                 HttpStatus.CREATED.value(),
                 "Flashcard adicionado com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    @PostMapping("/{id}/gerar-flashcards")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<ColecaoDetalheResponse>> gerarFlashcards(
+            @PathVariable UUID id,
+            @Valid @RequestBody GerarFlashcardsRequest request,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        ColecaoDetalheResponse response = flashcardService.gerarFlashcards(
+                id,
+                request,
+                authentication.getName(),
+                isAdmin(authentication)
+        );
+
+        ApiResponse<ColecaoDetalheResponse> body = ApiResponse.sucess(
+                HttpStatus.CREATED.value(),
+                "Flashcards gerados com sucesso.",
                 response,
                 servletRequest.getRequestURI()
         );

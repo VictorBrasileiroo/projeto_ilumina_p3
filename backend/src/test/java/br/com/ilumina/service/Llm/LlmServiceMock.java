@@ -29,6 +29,20 @@ public class LlmServiceMock implements LlmService {
         return gerarJsonValidoParaTeste(quantidadeEsperada);
     }
 
+      @Override
+      public String gerarFlashcards(String prompt, int quantidadeEsperada) {
+        if (excecaoForcada != null) {
+          throw excecaoForcada;
+        }
+
+        String resposta = respostasEnfileiradas.poll();
+        if (resposta != null) {
+          return resposta;
+        }
+
+        return gerarJsonFlashcardsValidoParaTeste(quantidadeEsperada);
+      }
+
     public void enfileirarResposta(String respostaJson) {
         respostasEnfileiradas.add(respostaJson);
     }
@@ -131,6 +145,37 @@ public class LlmServiceMock implements LlmService {
                       "pontuacao": 1.0,
                       "ordem": 1,
                       "alternativas": []
+                    }
+                  ]
+                }
+                """;
+    }
+
+    public String gerarJsonFlashcardsValidoParaTeste(int quantidade) {
+        StringBuilder json = new StringBuilder();
+        json.append("{\"flashcards\":[");
+
+        for (int i = 1; i <= quantidade; i++) {
+            if (i > 1) {
+                json.append(',');
+            }
+
+            json.append("{\"textoFrente\":\"Frente ").append(i)
+                    .append("\",\"textoVerso\":\"Verso ").append(i)
+                    .append("\"}");
+        }
+
+        json.append("]}");
+        return json.toString();
+    }
+
+    public String gerarJsonFlashcardsComTextoFrenteVazioParaTeste() {
+        return """
+                {
+                  "flashcards": [
+                    {
+                      "textoFrente": " ",
+                      "textoVerso": "Verso valido"
                     }
                   ]
                 }

@@ -2,6 +2,7 @@ package br.com.ilumina.controller.Flashcard;
 
 import br.com.ilumina.dto.flashcard.CreateColecaoRequest;
 import br.com.ilumina.dto.flashcard.CreateFlashcardRequest;
+import br.com.ilumina.dto.flashcard.GerarFlashcardsRequest;
 import br.com.ilumina.dto.flashcard.UpdateColecaoRequest;
 import br.com.ilumina.dto.flashcard.UpdateFlashcardRequest;
 import br.com.ilumina.entity.Flashcard.ColecoesFlashcard;
@@ -14,6 +15,7 @@ import br.com.ilumina.entity.Turma.Turma;
 import br.com.ilumina.entity.Turma.Turno;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.entity.User.UserRole;
+import br.com.ilumina.exception.LlmUnavailableException;
 import br.com.ilumina.repository.Flashcard.ColecoesFlashcardRepository;
 import br.com.ilumina.repository.Flashcard.FlashcardRepository;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
@@ -21,6 +23,8 @@ import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
 import br.com.ilumina.repository.User.RoleRepository;
 import br.com.ilumina.repository.User.UserRepository;
+import br.com.ilumina.service.Llm.LlmServiceMock;
+import br.com.ilumina.service.Llm.RateLimiterService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -79,8 +83,16 @@ class FlashcardControllerIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private LlmServiceMock llmServiceMock;
+
+    @Autowired
+    private RateLimiterService rateLimiterService;
+
     @AfterEach
     void cleanup() {
+        llmServiceMock.reset();
+        rateLimiterService.resetForTests();
         flashcardRepository.deleteAll();
         colecoesFlashcardRepository.deleteAll();
         profTurmaRepository.deleteAll();
@@ -266,6 +278,182 @@ class FlashcardControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.ordem").value(2));
+    }
+
+    @Test
+    void gerarFlashcardsComMockValidoShouldReturnCreatedAndPersistir() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.ok@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-A", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.RASCUNHO, "Colecao LLM OK");
+        createFlashcardDirectly(colecao, "Frente Base", "Verso Base", 1);
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Revolucao Francesa", 2);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.ok@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.flashcards.length()").value(3))
+                .andExpect(jsonPath("$.data.flashcards[0].ordem").value(1))
+                .andExpect(jsonPath("$.data.flashcards[1].ordem").value(2))
+                .andExpect(jsonPath("$.data.flashcards[2].ordem").value(3));
+
+        assertThat(flashcardRepository.countByColecaoId(colecao.getId())).isEqualTo(3);
+    }
+
+    @Test
+    void gerarFlashcardsEmColecaoPublicadaShouldReturnBadRequest() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.publicada@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-B", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.PUBLICADA, "Colecao LLM Publicada");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.publicada@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void gerarFlashcardsColecaoInexistenteShouldReturnNotFound() throws Exception {
+        createProfessorDirectly("Professor LLM", "flash.llm.notfound@ilumina.com");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", UUID.randomUUID())
+                        .with(user("flash.llm.notfound@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void gerarFlashcardsParaColecaoDeOutroProfessorShouldReturnForbidden() throws Exception {
+        Professor owner = createProfessorDirectly("Professor Owner", "flash.llm.owner@ilumina.com");
+        createProfessorDirectly("Professor Outro", "flash.llm.outro@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-C", true);
+        linkProfessorTurma(owner, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(owner, turma, StatusColecao.RASCUNHO, "Colecao Restrita LLM");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.outro@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void gerarFlashcardsComJsonMalformadoShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.json.invalido@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-D", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.RASCUNHO, "Colecao JSON Invalido");
+
+        llmServiceMock.enfileirarResposta("{json-invalido");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.json.invalido@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(flashcardRepository.countByColecaoId(colecao.getId())).isZero();
+    }
+
+    @Test
+    void gerarFlashcardsComTextoFrenteVazioShouldReturnBadRequestSemPersistencia() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.frente.vazia@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-E", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.RASCUNHO, "Colecao Frente Vazia");
+
+        llmServiceMock.enfileirarResposta(llmServiceMock.gerarJsonFlashcardsComTextoFrenteVazioParaTeste());
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.frente.vazia@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(flashcardRepository.countByColecaoId(colecao.getId())).isZero();
+    }
+
+    @Test
+    void gerarFlashcardsComoAdminShouldReturnCreated() throws Exception {
+        Professor owner = createProfessorDirectly("Professor Owner", "flash.llm.admin.owner@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-F", true);
+        linkProfessorTurma(owner, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(owner, turma, StatusColecao.RASCUNHO, "Colecao Admin LLM");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("admin.llm@ilumina.com").roles("ADMIN"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.flashcards.length()").value(1));
+    }
+
+    @Test
+    void gerarFlashcardsAcimaDoRateLimitShouldReturnTooManyRequests() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.ratelimit@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-G", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.RASCUNHO, "Colecao Rate Limit");
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                            .with(user("flash.llm.ratelimit@ilumina.com").roles("PROFESSOR"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+        }
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.ratelimit@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void gerarFlashcardsComLlmIndisponivelShouldReturnServiceUnavailable() throws Exception {
+        Professor professor = createProfessorDirectly("Professor LLM", "flash.llm.503@ilumina.com");
+        Turma turma = createTurmaDirectly("4LLM-H", true);
+        linkProfessorTurma(professor, turma);
+
+        ColecoesFlashcard colecao = createColecaoDirectly(professor, turma, StatusColecao.RASCUNHO, "Colecao LLM 503");
+        llmServiceMock.forcarExcecao(new LlmUnavailableException("LLM indisponivel"));
+
+        GerarFlashcardsRequest request = new GerarFlashcardsRequest("Tema", 1);
+
+        mockMvc.perform(post("/api/v1/colecoes/{id}/gerar-flashcards", colecao.getId())
+                        .with(user("flash.llm.503@ilumina.com").roles("PROFESSOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isServiceUnavailable());
     }
 
     @Test

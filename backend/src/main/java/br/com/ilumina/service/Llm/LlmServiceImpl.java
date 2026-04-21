@@ -25,6 +25,15 @@ public class LlmServiceImpl implements LlmService {
 
     @Override
     public String gerarQuestoes(String prompt, int quantidadeEsperada) {
+        return gerarConteudoJson(prompt, "questoes");
+    }
+
+    @Override
+    public String gerarFlashcards(String prompt, int quantidadeEsperada) {
+        return gerarConteudoJson(prompt, "flashcards");
+    }
+
+    private String gerarConteudoJson(String prompt, String tipoConteudo) {
         if (props.getApiKey() == null || props.getApiKey().isBlank()) {
             throw new LlmUnavailableException(
                     "A configuração da API de IA não foi encontrada. Defina GOOGLE_API_KEY (ou GEMINI_API_KEY) no ambiente ou no arquivo .env."
@@ -53,7 +62,7 @@ public class LlmServiceImpl implements LlmService {
 
             if (cause instanceof TimeoutException) {
                 throw new LlmUnavailableException(
-                        "A geração de questões demorou mais que o esperado. Tente novamente.",
+                        "A geracao de " + tipoConteudo + " demorou mais que o esperado. Tente novamente.",
                         cause
                 );
             }
@@ -63,14 +72,14 @@ public class LlmServiceImpl implements LlmService {
             }
 
             throw new LlmUnavailableException(
-                    "Não foi possível gerar questões com IA no momento. Tente novamente.",
+                    "Nao foi possivel gerar " + tipoConteudo + " com IA no momento. Tente novamente.",
                     cause != null ? cause : ex
             );
         } catch (LlmUnavailableException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new LlmUnavailableException(
-                    "Não foi possível gerar questões com IA no momento. Tente novamente.",
+                    "Nao foi possivel gerar " + tipoConteudo + " com IA no momento. Tente novamente.",
                     ex
             );
         }

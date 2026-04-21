@@ -5,8 +5,10 @@ import br.com.ilumina.dto.flashcard.ColecaoResponse;
 import br.com.ilumina.dto.flashcard.CreateColecaoRequest;
 import br.com.ilumina.dto.flashcard.CreateFlashcardRequest;
 import br.com.ilumina.dto.flashcard.FlashcardResponse;
+import br.com.ilumina.dto.flashcard.GerarFlashcardsRequest;
 import br.com.ilumina.dto.flashcard.UpdateColecaoRequest;
 import br.com.ilumina.dto.flashcard.UpdateFlashcardRequest;
+import br.com.ilumina.dto.llm.FlashcardValidado;
 import br.com.ilumina.entity.Flashcard.ColecoesFlashcard;
 import br.com.ilumina.entity.Flashcard.Flashcard;
 import br.com.ilumina.entity.Flashcard.StatusColecao;
@@ -21,11 +23,20 @@ import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
 import br.com.ilumina.repository.User.UserRepository;
+import br.com.ilumina.service.Llm.LlmService;
+import br.com.ilumina.service.Llm.LlmValidationService;
+import br.com.ilumina.service.Llm.RateLimiterService;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -35,12 +46,18 @@ import java.util.UUID;
 @Service
 public class FlashcardService {
 
+    private static final String PROMPT_FLASHCARDS_MAIN_PATH = "classpath:prompts/gerar-flashcards-main.txt";
+
     private final ColecoesFlashcardRepository colecoesFlashcardRepository;
     private final FlashcardRepository flashcardRepository;
     private final ProfessorRepository professorRepository;
     private final TurmaRepository turmaRepository;
     private final ProfTurmaRepository profTurmaRepository;
     private final UserRepository userRepository;
+    private final LlmService llmService;
+    private final LlmValidationService llmValidationService;
+    private final RateLimiterService rateLimiterService;
+    private final String promptTemplateFlashcards;
 
     public FlashcardService(
             ColecoesFlashcardRepository colecoesFlashcardRepository,
@@ -48,7 +65,11 @@ public class FlashcardService {
             ProfessorRepository professorRepository,
             TurmaRepository turmaRepository,
             ProfTurmaRepository profTurmaRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            LlmService llmService,
+            LlmValidationService llmValidationService,
+            RateLimiterService rateLimiterService,
+            ResourceLoader resourceLoader
     ) {
         this.colecoesFlashcardRepository = colecoesFlashcardRepository;
         this.flashcardRepository = flashcardRepository;
@@ -56,6 +77,10 @@ public class FlashcardService {
         this.turmaRepository = turmaRepository;
         this.profTurmaRepository = profTurmaRepository;
         this.userRepository = userRepository;
+        this.llmService = llmService;
+        this.llmValidationService = llmValidationService;
+        this.rateLimiterService = rateLimiterService;
+        this.promptTemplateFlashcards = carregarPromptTemplate(resourceLoader, PROMPT_FLASHCARDS_MAIN_PATH);
     }
 
     @Transactional
@@ -266,6 +291,49 @@ public class FlashcardService {
         flashcardRepository.delete(flashcard);
     }
 
+    @Transactional
+    public ColecaoDetalheResponse gerarFlashcards(
+            UUID colecaoId,
+            GerarFlashcardsRequest request,
+            String currentUserEmail,
+            boolean isAdmin
+    ) {
+        ColecoesFlashcard colecao = buscarColecaoPorId(colecaoId);
+        validarOwnership(colecao, currentUserEmail, isAdmin);
+        verificarEditavel(colecao);
+
+        String tema = normalizeRequired(request.tema(), "O tema e obrigatorio.");
+        int quantidade = request.quantidade();
+
+        validarRateLimitGeracao(currentUserEmail);
+
+        String prompt = montarPromptFlashcards(tema, quantidade);
+        String jsonResposta = llmService.gerarFlashcards(prompt, quantidade);
+        List<FlashcardValidado> flashcardsValidados = llmValidationService.validarFlashcards(jsonResposta, quantidade);
+
+        int proximaOrdem = resolverProximaOrdem(colecaoId);
+        List<Flashcard> novosFlashcards = new ArrayList<>();
+
+        for (FlashcardValidado flashcardValidado : flashcardsValidados) {
+            Flashcard flashcard = new Flashcard();
+            flashcard.setTextoFrente(normalizeRequired(
+                    flashcardValidado.textoFrente(),
+                    "LLM retornou flashcard com textoFrente invalido."
+            ));
+            flashcard.setTextoVerso(normalizeRequired(
+                    flashcardValidado.textoVerso(),
+                    "LLM retornou flashcard com textoVerso invalido."
+            ));
+            flashcard.setOrdem(proximaOrdem++);
+            flashcard.setColecao(colecao);
+            novosFlashcards.add(flashcard);
+        }
+
+        flashcardRepository.saveAll(novosFlashcards);
+
+        return buscarDetalhePorId(colecaoId, currentUserEmail, isAdmin);
+    }
+
     private void validarColecaoParaPublicacao(UUID colecaoId) {
         List<Flashcard> flashcards = flashcardRepository.findByColecao_IdOrderByOrdemAsc(colecaoId);
         if (flashcards.isEmpty()) {
@@ -289,6 +357,26 @@ public class FlashcardService {
                 .filter(Objects::nonNull)
                 .max(Integer::compareTo)
                 .orElse(0) + 1;
+    }
+
+    private String montarPromptFlashcards(String tema, int quantidade) {
+        return promptTemplateFlashcards
+                .replace("{{TEMA}}", tema)
+                .replace("{{QUANTIDADE}}", String.valueOf(quantidade));
+    }
+
+    private String carregarPromptTemplate(ResourceLoader resourceLoader, String path) {
+        Resource resource = resourceLoader.getResource(path);
+
+        try (var inputStream = resource.getInputStream()) {
+            return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Nao foi possivel carregar o template de prompt: " + path, ex);
+        }
+    }
+
+    private void validarRateLimitGeracao(String currentUserEmail) {
+        rateLimiterService.validarLimiteOuLancar(currentUserEmail);
     }
 
     private void validarFlashcardPertenceAColecao(Flashcard flashcard, UUID colecaoId) {
