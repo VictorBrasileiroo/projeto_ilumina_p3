@@ -25,14 +25,14 @@ export default function TurmaDetalhes() {
   const [activeTab, setActiveTab] = useState<'alunos' | 'provas' | 'flashcards'>('alunos');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const turma = {
-    id: Number(id),
-    nome: '9º A',
-    nivel: 'Fundamental II',
-    turno: 'Manhã',
-    ano: '2026',
-    totalAlunos: 32,
-  };
+  const turmaId = Number(id);
+  const turmas = [
+    { id: 1, nome: '9º A', nivel: 'Fundamental II', turno: 'Manhã', ano: '2026', totalAlunos: 32 },
+    { id: 2, nome: '8º B', nivel: 'Fundamental II', turno: 'Tarde', ano: '2026', totalAlunos: 28 },
+    { id: 3, nome: '7º C', nivel: 'Fundamental II', turno: 'Manhã', ano: '2026', totalAlunos: 30 },
+    { id: 4, nome: '1º A', nivel: 'Ensino Médio', turno: 'Manhã', ano: '2026', totalAlunos: 35 },
+  ];
+  const turma = turmas.find((item) => item.id === turmaId) ?? turmas[0];
 
   const alunos: Aluno[] = [
     { id: 1, nome: 'Ana Beatriz Oliveira', email: 'ana.oliveira@escola.com', matricula: '2026001', mediaGeral: 8.5, provasRealizadas: 5, status: 'ativo' },

@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import Login from "./pages/Login";
 import ProfessorDashboard from "./pages/professor/Dashboard";
 import ProfessorTurmas from "./pages/professor/Turmas";
+import ProfessorTurmaDetalhes from "./pages/professor/TurmaDetalhes";
 import ProfessorCriarProva from "./pages/professor/CriarProva";
 import ProfessorRevisarQuestoes from "./pages/professor/RevisarQuestoes";
 import ProfessorFlashcards from "./pages/professor/Flashcards";
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: ProfessorDashboard },
       { path: "turmas", Component: ProfessorTurmas },
+      { path: "turmas/:id", Component: ProfessorTurmaDetalhes },
       { path: "provas/criar", Component: ProfessorCriarProva },
       { path: "provas/:id/revisar", Component: ProfessorRevisarQuestoes },
       { path: "flashcards", Component: ProfessorFlashcards },

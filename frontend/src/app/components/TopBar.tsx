@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Bell, User, Search, HelpCircle, LogOut, ChevronRight, Menu, Settings } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 interface TopBarProps {
   userName: string;
@@ -48,8 +49,11 @@ function getBreadcrumbs(pathname: string) {
 export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const searchQuery = searchParams.get('q') ?? '';
 
   const breadcrumbs = getBreadcrumbs(location.pathname);
 
@@ -117,20 +121,38 @@ export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
             <input
               type="text"
               placeholder="Buscar..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchParams((prev) => {
+                  if (e.target.value) prev.set('q', e.target.value);
+                  else prev.delete('q');
+                  return prev;
+                });
+              }}
               className="w-full pl-9 pr-4 py-[6px] text-sm bg-[var(--color-neutral-50)] border border-[var(--color-neutral-100)] rounded-[var(--border-radius)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)] focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-neutral-400)]"
             />
           </div>
 
           {/* Help */}
-          <button className="p-2 rounded-[var(--border-radius)] text-[var(--color-neutral-400)] hover:bg-[var(--color-neutral-50)] hover:text-[var(--color-neutral-600)] transition-colors">
-            <HelpCircle size={18} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="p-2 rounded-[var(--border-radius)] text-[var(--color-neutral-400)] hover:bg-[var(--color-neutral-50)] hover:text-[var(--color-neutral-600)] transition-colors">
+                <HelpCircle size={18} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Ajuda</TooltipContent>
+          </Tooltip>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-[var(--border-radius)] text-[var(--color-neutral-400)] hover:bg-[var(--color-neutral-50)] hover:text-[var(--color-neutral-600)] transition-colors">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-[var(--color-error)] rounded-full ring-2 ring-white" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="relative p-2 rounded-[var(--border-radius)] text-[var(--color-neutral-400)] hover:bg-[var(--color-neutral-50)] hover:text-[var(--color-neutral-600)] transition-colors">
+                <Bell size={18} />
+                <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-[var(--color-error)] rounded-full ring-2 ring-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Notificações</TooltipContent>
+          </Tooltip>
 
           {/* Divider */}
           <div className="w-px h-8 bg-[var(--color-neutral-100)] mx-2" />

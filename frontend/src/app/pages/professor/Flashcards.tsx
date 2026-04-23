@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Badge } from '../../components/Badge';
-import { Plus, Sparkles, GripVertical, Trash2, Save, X, BookOpen, Users } from 'lucide-react';
+import { ArrowRight, BookOpen, GraduationCap, GripVertical, Layers3, Plus, Save, Sparkles, Trash2, Users, X } from 'lucide-react';
 
 interface Flashcard {
   id: number;
@@ -266,36 +266,125 @@ export default function Flashcards() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {colecoes.map((colecao) => (
-          <Card key={colecao.id} hoverable className="p-5">
-            <div className="flex items-start justify-between mb-4">
-              <Badge variant={colecao.status === 'Publicada' ? 'success' : 'warning'}>
-                {colecao.status}
-              </Badge>
-              <button className="p-1.5 hover:bg-[var(--color-error-surface)] rounded-[var(--border-radius)]">
-                <Trash2 size={14} className="text-[var(--color-neutral-400)]" />
-              </button>
-            </div>
-            <div className="w-10 h-10 rounded-[var(--border-radius-lg)] bg-[var(--color-secondary-green)] flex items-center justify-center mb-3">
-              <BookOpen size={18} className="text-white" />
-            </div>
-            <h4 className="text-[14px] mb-1" style={{ fontWeight: 600 }}>{colecao.titulo}</h4>
-            <div className="space-y-1 text-[12px] text-[var(--color-neutral-400)] mb-1">
-              <p>{colecao.tema} · {colecao.turma}</p>
-            </div>
-            {colecao.status === 'Publicada' && (
-              <p className="text-[12px] text-[var(--color-neutral-500)] mb-3">
-                <span style={{ fontWeight: 600 }}>{colecao.alunosEstudaram}</span> alunos estudaram
-              </p>
-            )}
-            <div className="flex items-center justify-between pt-3 border-t border-[var(--color-neutral-100)]">
-              <span className="text-[13px] text-[var(--color-neutral-700)]" style={{ fontWeight: 600 }}>{colecao.cards} cards</span>
-              <Link to={`/professor/flashcards/${colecao.id}`}>
-                <Button size="sm" variant="ghost">Ver detalhes</Button>
-              </Link>
-            </div>
-          </Card>
-        ))}
+        {colecoes.map((colecao) => {
+          const isPublished = colecao.status === 'Publicada';
+
+          return (
+            <Card
+              key={colecao.id}
+              hoverable
+              className="group overflow-hidden p-0"
+              onClick={() => navigate(`/professor/flashcards/${colecao.id}`)}
+            >
+              <div
+                className="relative overflow-hidden px-5 pt-5 pb-4"
+                style={{
+                  background: isPublished
+                    ? 'linear-gradient(135deg, var(--color-secondary-green-dark) 0%, var(--color-secondary-green) 55%, var(--color-primary) 100%)'
+                    : 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+                }}
+              >
+                <div className="absolute -top-12 -right-8 h-28 w-28 rounded-full bg-white/10" />
+                <div className="absolute -bottom-8 left-8 h-16 w-16 rounded-full bg-[var(--color-secondary-yellow)] opacity-20" />
+                <div className="absolute bottom-0 left-0 h-1 w-24 bg-[var(--color-secondary-yellow)]" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] border border-white/15 bg-white/10 text-white shadow-[var(--shadow-sm)] backdrop-blur-sm">
+                      <BookOpen size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-white/70">Coleção</p>
+                      <h4 className="truncate text-[17px] text-white" style={{ fontWeight: 700 }}>{colecao.titulo}</h4>
+                      <p className="mt-0.5 truncate text-[12px] text-white/80">
+                        {isPublished ? 'Disponível para estudo da turma' : 'Em preparação para publicação'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-[var(--border-radius)] border border-white/10 bg-white/10 p-1.5 text-white/80 transition-colors hover:bg-white/15"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <div className="relative mt-4 flex flex-wrap items-center gap-2">
+                  <Badge variant={isPublished ? 'success' : 'warning'} size="sm">
+                    {colecao.status}
+                  </Badge>
+                  <span className="inline-flex items-center rounded-[var(--border-radius)] border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] text-white/85">
+                    Turma {colecao.turma}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="rounded-[var(--border-radius-lg)] border border-[var(--color-neutral-100)] bg-[var(--color-neutral-50)] p-3">
+                  <div className="flex items-center gap-1 text-[11px] text-[var(--color-neutral-400)]">
+                    <GraduationCap size={11} />
+                    Tema principal
+                  </div>
+                  <p className="mt-1 text-[13px] text-[var(--color-neutral-800)]" style={{ fontWeight: 600 }}>
+                    {colecao.tema}
+                  </p>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-[var(--border-radius)] border border-[var(--color-neutral-100)] bg-[var(--color-neutral-50)] p-3">
+                    <div className="flex items-center gap-1 text-[11px] text-[var(--color-neutral-400)]">
+                      <Layers3 size={11} />
+                      Cards
+                    </div>
+                    <p className="mt-1 text-[13px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                      {colecao.cards} cards
+                    </p>
+                  </div>
+                  <div className={`rounded-[var(--border-radius)] border p-3 ${
+                    isPublished
+                      ? 'border-[var(--color-success-surface)] bg-[var(--color-success-surface)]'
+                      : 'border-[var(--color-warning-surface)] bg-[var(--color-warning-surface)]'
+                  }`}>
+                    <div className={`flex items-center gap-1 text-[11px] ${
+                      isPublished ? 'text-[var(--color-secondary-green-dark)]' : 'text-[#6B5900]'
+                    }`}>
+                      <Users size={11} />
+                      {isPublished ? 'Estudaram' : 'Status'}
+                    </div>
+                    <p className="mt-1 text-[13px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                      {isPublished ? `${colecao.alunosEstudaram} alunos` : 'Rascunho'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3 border-t border-[var(--color-neutral-100)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[12px] text-[var(--color-neutral-400)]">
+                      {isPublished ? 'Coleção em uso com a turma' : 'Revise e publique quando estiver pronta'}
+                    </p>
+                    <p className="text-[13px] text-[var(--color-neutral-700)]" style={{ fontWeight: 600 }}>
+                      Abrir gestão da coleção
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/professor/flashcards/${colecao.id}`);
+                    }}
+                    className="inline-flex self-start items-center gap-1 rounded-[var(--border-radius)] bg-[var(--color-primary-surface)] px-3 py-2 text-[13px] text-[var(--color-primary)] transition-all hover:bg-[var(--color-primary-lighten-02)] sm:self-auto"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Ver detalhes
+                    <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
