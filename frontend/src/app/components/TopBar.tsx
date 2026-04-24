@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { Bell, User, Search, HelpCircle, LogOut, ChevronRight, Menu, Settings } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { useEffect, useRef, useState } from "react";
+import { ChevronRight, HelpCircle, LogOut, Menu, Search, Settings, User } from "lucide-react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { useAuth } from "../hooks/useAuth";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface TopBarProps {
   userName: string;
@@ -49,6 +50,7 @@ function getBreadcrumbs(pathname: string) {
 export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
 
   const handleLogout = () => {
     setShowUserMenu(false);
-    navigate('/');
+    logout();
   };
 
   return (
@@ -141,17 +143,6 @@ export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">Ajuda</TooltipContent>
-          </Tooltip>
-
-          {/* Notifications */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="relative p-2 rounded-[var(--border-radius)] text-[var(--color-neutral-400)] hover:bg-[var(--color-neutral-50)] hover:text-[var(--color-neutral-600)] transition-colors">
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-[var(--color-error)] rounded-full ring-2 ring-white" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Notificações</TooltipContent>
           </Tooltip>
 
           {/* Divider */}

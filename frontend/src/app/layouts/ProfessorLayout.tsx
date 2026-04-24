@@ -1,18 +1,21 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { useState } from "react";
+import { Outlet } from "react-router";
+import { Sidebar } from "../components/Sidebar";
+import { TopBar } from "../components/TopBar";
+import { useAuth } from "../hooks/useAuth";
+import { getRoleLabel } from "../lib/mappings";
 
 export default function ProfessorLayout() {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem('sidebar-collapsed') === 'true',
+    () => localStorage.getItem("sidebar-collapsed") === "true",
   );
 
   const handleToggleCollapse = () => {
     setSidebarCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem('sidebar-collapsed', String(next));
+      localStorage.setItem("sidebar-collapsed", String(next));
       return next;
     });
   };
@@ -31,7 +34,11 @@ export default function ProfessorLayout() {
           sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-[260px]'
         }`}
       >
-        <TopBar userName="Prof. Maria Silva" userRole="Professor" onToggleSidebar={() => setSidebarOpen(true)} />
+        <TopBar
+          userName={user?.name ?? "Professor"}
+          userRole={user ? getRoleLabel(user.roles) : "Professor"}
+          onToggleSidebar={() => setSidebarOpen(true)}
+        />
         <main className="flex-1 px-4 md:px-8 py-6">
           <Outlet />
         </main>

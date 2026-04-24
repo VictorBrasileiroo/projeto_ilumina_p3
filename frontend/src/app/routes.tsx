@@ -1,5 +1,9 @@
 import { createBrowserRouter } from "react-router";
+import { RequireAuth } from "./components/RequireAuth";
+import { ALUNO_AREA_ROLES, PROFESSOR_AREA_ROLES } from "./lib/constants";
+import SemPermissao from "./pages/SemPermissao";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import ProfessorDashboard from "./pages/professor/Dashboard";
 import ProfessorTurmas from "./pages/professor/Turmas";
 import ProfessorTurmaDetalhes from "./pages/professor/TurmaDetalhes";
@@ -22,8 +26,20 @@ export const router = createBrowserRouter([
     Component: Login,
   },
   {
+    path: "/cadastro",
+    Component: Register,
+  },
+  {
+    path: "/sem-permissao",
+    Component: SemPermissao,
+  },
+  {
     path: "/professor",
-    Component: ProfessorLayout,
+    element: (
+      <RequireAuth allowedRoles={PROFESSOR_AREA_ROLES}>
+        <ProfessorLayout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, Component: ProfessorDashboard },
       { path: "turmas", Component: ProfessorTurmas },
@@ -36,7 +52,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/aluno",
-    Component: AlunoLayout,
+    element: (
+      <RequireAuth allowedRoles={ALUNO_AREA_ROLES}>
+        <AlunoLayout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, Component: AlunoDashboard },
       { path: "provas", Component: AlunoProvas },

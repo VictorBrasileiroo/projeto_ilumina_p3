@@ -1,7 +1,8 @@
-import { Link, useLocation, useNavigate } from 'react-router';
-import logoSvg from '../../imports/ilumina_logo.svg';
-import { BookOpen, Users, FileText, LayoutDashboard, LogOut, ChevronRight, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { BookOpen, ChevronRight, FileText, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, Users, X } from "lucide-react";
+import { Link, useLocation } from "react-router";
+import logoSvg from "../../imports/ilumina_logo.svg";
+import { useAuth } from "../hooks/useAuth";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface SidebarProps {
   userType: 'professor' | 'aluno';
@@ -13,7 +14,7 @@ interface SidebarProps {
 
 export function Sidebar({ userType, isOpen = false, onClose, collapsed = false, onToggleCollapse }: SidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const professorLinks = [
     { path: '/professor', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,7 +31,10 @@ export function Sidebar({ userType, isOpen = false, onClose, collapsed = false, 
 
   const links = userType === 'professor' ? professorLinks : alunoLinks;
 
-  const handleLogout = () => navigate('/');
+  const handleLogout = () => {
+    onClose?.();
+    logout();
+  };
   const handleLinkClick = () => onClose?.();
 
   const isActive = (path: string) =>

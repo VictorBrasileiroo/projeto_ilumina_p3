@@ -1,20 +1,84 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { Button } from '../components/Button';
-import { Input } from '../components/Input';
-import logoSvg from '../../imports/ilumina_logo.svg';
-import { GraduationCap, BookOpen } from 'lucide-react';
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowRight } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router";
+import logoSvg from "../../imports/ilumina_logo.svg";
+import { Button } from "../components/Button";
+import { Input } from "../components/Input";
+import { extractHttpErrorMessage, HttpError } from "../lib/http";
+import { REGISTER_ROUTE } from "../lib/constants";
+import { extractRedirectPath, resolvePostLoginPath } from "../lib/mappings";
+import { useAuth } from "../hooks/useAuth";
+
+function getLoginErrorMessage(error: unknown): string {
+  if (error instanceof HttpError) {
+    if (error.status === 401) {
+      return "E-mail ou senha invalidos.";
+    }
+
+    if (error.status === 429) {
+      return "Muitas tentativas de login. Tente novamente em instantes.";
+    }
+
+    if (error.status === 400) {
+      return "Revise os dados informados e tente novamente.";
+    }
+  }
+
+  return extractHttpErrorMessage(error, "Nao foi possivel entrar agora.");
+}
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState<'professor' | 'aluno'>('professor');
+  const location = useLocation();
+  const { login, isAuthenticated, isLoading, user } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const redirectPath = extractRedirectPath(location.state);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || !user) {
+      return;
+    }
+
+    navigate(resolvePostLoginPath(user.roles, redirectPath), { replace: true });
+  }, [isAuthenticated, isLoading, navigate, redirectPath, user]);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    navigate(userType === 'professor' ? '/professor' : '/aluno');
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await login({
+        email: email.trim(),
+        password,
+      });
+    } catch (nextError) {
+      setError(getLoginErrorMessage(nextError));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading || (isAuthenticated && user)) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-[var(--border-radius-lg)] border border-[var(--color-neutral-100)] bg-white px-6 py-8 shadow-[var(--shadow-md)] text-center">
+          <p className="text-[15px] text-[var(--color-neutral-700)]" style={{ fontWeight: 600 }}>
+            Preparando sua sessao...
+          </p>
+          <p className="mt-2 text-sm text-[var(--color-neutral-500)]">
+            Estamos validando suas credenciais antes de abrir a plataforma.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -64,40 +128,16 @@ export default function Login() {
               <img src={logoSvg} alt="Ilumina" className="h-16 mx-auto mb-3" />
             </div>
 
-            <div className="mb-8">
+            <div className="mb-8 bg-gray-50 p-4 rounded-xl pl-6">
               <h2 className="mb-1.5">Acessar a plataforma</h2>
               <p className="text-[var(--color-neutral-500)] text-sm">Entre com suas credenciais para continuar</p>
             </div>
 
-            {/* User type toggle */}
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              <button
-                type="button"
-                onClick={() => setUserType('professor')}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
-                  userType === 'professor'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]'
-                    : 'border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]'
-                }`}
-                style={{ fontWeight: userType === 'professor' ? 600 : 400 }}
-              >
-                <GraduationCap size={18} />
-                Professor
-              </button>
-              <button
-                type="button"
-                onClick={() => setUserType('aluno')}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
-                  userType === 'aluno'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]'
-                    : 'border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]'
-                }`}
-                style={{ fontWeight: userType === 'aluno' ? 600 : 400 }}
-              >
-                <BookOpen size={18} />
-                Aluno
-              </button>
-            </div>
+            {redirectPath && (
+              <div className="mb-5 rounded-[var(--border-radius)] border border-[var(--color-primary-lighten-02)] bg-[var(--color-primary-surface)] px-4 py-3 text-[13px] text-[var(--color-primary-dark)]">
+                Depois do login, voce sera levado de volta para a area que tentou abrir.
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <Input
@@ -106,6 +146,7 @@ export default function Login() {
                 placeholder="seu.email@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
                 fullWidth
                 required
               />
@@ -116,32 +157,42 @@ export default function Login() {
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
                 fullWidth
                 required
               />
 
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-[var(--color-neutral-200)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]" />
-                  <span className="text-[13px] text-[var(--color-neutral-500)]">Lembrar de mim</span>
-                </label>
-                <a href="#" className="text-[13px] text-[var(--color-primary)] hover:underline" style={{ fontWeight: 500 }}>
-                  Esqueceu a senha?
-                </a>
-              </div>
+              {error && (
+                <div className="rounded-[var(--border-radius)] border border-[var(--color-error)] bg-[var(--color-error-surface)] px-4 py-3 text-[13px] text-[var(--color-error)]">
+                  {error}
+                </div>
+              )}
 
-              <Button type="submit" fullWidth size="lg">
-                Entrar
+              <Button type="submit" fullWidth size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Entrando..." : "Entrar"}
               </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-[var(--color-neutral-100)] text-center">
-              <p className="text-[13px] text-[var(--color-neutral-500)]">
-                Não tem uma conta?{' '}
-                <a href="#" className="text-[var(--color-primary)] hover:underline" style={{ fontWeight: 600 }}>
+            <div className="mt-8 pt-6 border-t border-[var(--color-neutral-100)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[13px] text-[var(--color-neutral-500)]">
+                    Ainda nao tem uma conta?
+                  </p>
+                  <p className="text-[13px] text-[var(--color-neutral-400)]">
+                    Crie seu acesso e escolha o perfil no cadastro.
+                  </p>
+                </div>
+
+                <Link
+                  to={REGISTER_ROUTE}
+                  className="inline-flex items-center gap-2 text-[14px] text-[var(--color-primary)] hover:underline"
+                  style={{ fontWeight: 600 }}
+                >
                   Cadastre-se
-                </a>
-              </p>
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
