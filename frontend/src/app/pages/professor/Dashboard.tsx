@@ -12,7 +12,9 @@ import {
   Users,
 } from 'lucide-react';
 import { extractHttpErrorMessage } from '../../lib/http';
+import { provaService } from '../../services/provaService';
 import { turmaService } from '../../services/turmaService';
+import type { ProvaResponse } from '../../types/prova';
 import type { Ensino, TurmaResponse } from '../../types/school';
 
 const ENSINO_LABELS: Record<Ensino, string> = {
@@ -24,6 +26,7 @@ const ENSINO_LABELS: Record<Ensino, string> = {
 
 export default function Dashboard() {
   const [turmas, setTurmas] = useState<TurmaResponse[]>([]);
+  const [provas, setProvas] = useState<ProvaResponse[]>([]);
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +39,17 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        const nextTurmas = await turmaService.list();
-        const countEntries = await Promise.all(
+        const [nextTurmas, nextProvas] = await Promise.all([
+          turmaService.list(),
+          provaService.listar(),
+        ]);
+
+        if (active) {
+          setTurmas(nextTurmas);
+          setProvas(nextProvas);
+        }
+
+        const countResults = await Promise.allSettled(
           nextTurmas.map(async (turma) => {
             const alunos = await turmaService.listStudents(turma.id);
             return [turma.id, alunos.length] as const;
@@ -45,7 +57,9 @@ export default function Dashboard() {
         );
 
         if (active) {
-          setTurmas(nextTurmas);
+          const countEntries = countResults
+            .filter((result): result is PromiseFulfilledResult<readonly [string, number]> => result.status === "fulfilled")
+            .map((result) => result.value);
           setStudentCounts(Object.fromEntries(countEntries));
         }
       } catch (nextError) {
@@ -71,9 +85,14 @@ export default function Dashboard() {
     [studentCounts],
   );
 
+  const recentProvas = useMemo(
+    () => [...provas].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3),
+    [provas],
+  );
+
   const stats = [
-    { label: 'Turmas Ativas', value: isLoading ? '...' : String(turmas.length), icon: Users, bg: 'bg-[var(--color-primary-surface)]', color: 'text-[var(--color-primary)]', change: 'dados reais' },
-    { label: 'Provas Criadas', value: '--', icon: FileText, bg: 'bg-[var(--color-success-surface)]', color: 'text-[var(--color-success)]', change: 'bloco futuro' },
+    { label: 'Turmas Ativas', value: isLoading ? '...' : String(turmas.length), icon: Users, bg: 'bg-[var(--color-primary-surface)]', color: 'text-[var(--color-primary)]', change: 'cadastradas' },
+    { label: 'Provas Criadas', value: isLoading ? '...' : String(provas.length), icon: FileText, bg: 'bg-[var(--color-success-surface)]', color: 'text-[var(--color-success)]', change: 'cadastradas' },
     { label: 'Coleções de Flashcards', value: '--', icon: BookOpen, bg: 'bg-[var(--color-warning-surface)]', color: 'text-[#6B5900]', change: 'bloco futuro' },
     { label: 'Total de Alunos', value: isLoading ? '...' : String(totalStudents), icon: TrendingUp, bg: 'bg-[var(--color-info-surface)]', color: 'text-[var(--color-primary)]', change: 'matriculados' },
   ];
@@ -129,21 +148,50 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-4">
-            <Card className="p-5" accent="warning">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
-                  <FileText size={18} />
+            {isLoading ? (
+              <Card className="p-5 text-sm text-[var(--color-neutral-500)]">Carregando provas...</Card>
+            ) : recentProvas.length === 0 ? (
+              <Card className="p-5" accent="primary">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                      Nenhuma prova criada ainda
+                    </h4>
+                    <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                      Crie uma avaliação para começar o fluxo de revisão e publicação.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
-                    Dados de provas indisponíveis neste bloco
-                  </h4>
-                  <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
-                    Esta seção será preenchida com dados reais quando a integração de provas estiver concluída.
-                  </p>
+              </Card>
+            ) : recentProvas.map((prova) => (
+              <Card key={prova.id} hoverable className="group p-5" accent={prova.status === 'PUBLICADA' ? 'success' : 'warning'}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={prova.status === 'PUBLICADA' ? 'success' : 'warning'} size="sm">
+                        {prova.status === 'PUBLICADA' ? 'Publicada' : 'Rascunho'}
+                      </Badge>
+                      <Badge variant="info" size="sm">{prova.disciplina ?? 'Sem disciplina'}</Badge>
+                    </div>
+                    <h4 className="mt-3 text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                      {prova.titulo}
+                    </h4>
+                    <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                      {prova.turmaNome} · {prova.totalQuestoes} questões
+                    </p>
+                  </div>
+                  <Link to={`/professor/provas/${prova.id}/revisar`}>
+                    <Button size="sm" variant="ghost">
+                      Abrir
+                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                    </Button>
+                  </Link>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            ))}
           </div>
         </section>
 
@@ -196,7 +244,7 @@ export default function Dashboard() {
                         </Badge>
                       </div>
                       <p className="mt-1 text-[12px] text-[var(--color-neutral-400)]">
-                        {studentCounts[turma.id] ?? 0} alunos · -- provas ativas
+                        {studentCounts[turma.id] ?? 0} alunos · {provas.filter((prova) => prova.turmaId === turma.id && prova.status === 'PUBLICADA').length} provas ativas
                       </p>
                     </div>
                     <div className="rounded-[var(--border-radius)] bg-[var(--color-primary-surface)] px-2.5 py-1 text-[11px] text-[var(--color-primary)]">

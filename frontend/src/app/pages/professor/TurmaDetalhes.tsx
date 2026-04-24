@@ -8,13 +8,16 @@ import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { extractHttpErrorMessage } from "../../lib/http";
+import { provaService } from "../../services/provaService";
 import { turmaService } from "../../services/turmaService";
+import type { ProvaResponse } from "../../types/prova";
 import type { AlunoResponse, Ensino, TurmaResponse, Turno } from "../../types/school";
 
 const TURNO_LABELS: Record<Turno, string> = {
   MATUTINO: "Manha",
   VESPERTINO: "Tarde",
   NOTURNO: "Noite",
+  INTEGRAL: "Integral",
 };
 
 const ENSINO_LABELS: Record<Ensino, string> = {
@@ -29,6 +32,7 @@ export default function TurmaDetalhes() {
   const navigate = useNavigate();
   const [turma, setTurma] = useState<TurmaResponse | null>(null);
   const [alunos, setAlunos] = useState<AlunoResponse[]>([]);
+  const [provas, setProvas] = useState<ProvaResponse[]>([]);
   const [availableStudents, setAvailableStudents] = useState<AlunoResponse[]>([]);
   const [activeTab, setActiveTab] = useState<"alunos" | "provas" | "flashcards">("alunos");
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,8 +55,10 @@ export default function TurmaDetalhes() {
         turmaService.getById(id),
         turmaService.listStudents(id),
       ]);
+      const nextProvas = await provaService.listar();
       setTurma(nextTurma);
       setAlunos(nextAlunos);
+      setProvas(nextProvas.filter((prova) => prova.turmaId === id));
     } catch (nextError) {
       setError(extractHttpErrorMessage(nextError, "Nao foi possivel carregar a turma."));
     } finally {
@@ -129,7 +135,7 @@ export default function TurmaDetalhes() {
 
   const tabs = [
     { key: "alunos" as const, label: "Alunos", icon: Users, count: alunos.length },
-    { key: "provas" as const, label: "Provas", icon: FileText, count: 0 },
+    { key: "provas" as const, label: "Provas", icon: FileText, count: provas.length },
     { key: "flashcards" as const, label: "Flashcards", icon: BookOpen, count: 0 },
   ];
 
@@ -201,7 +207,7 @@ export default function TurmaDetalhes() {
               <FileText size={18} className="text-[#6B5900]" />
             </div>
             <div>
-              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>--</p>
+              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>{provas.length}</p>
               <p className="text-[12px] text-[var(--color-neutral-400)]">Provas</p>
             </div>
           </div>
@@ -345,21 +351,51 @@ export default function TurmaDetalhes() {
             </Link>
           </div>
 
-          <Card className="p-5" accent="warning">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
-                <FileText size={18} />
+          {provas.length === 0 ? (
+            <Card className="p-5" accent="primary">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                    Nenhuma prova vinculada
+                  </h4>
+                  <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                    Crie uma prova para esta turma para iniciar o acompanhamento.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-[14px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
-                  Dados de provas indisponíveis neste bloco
-                </h4>
-                <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
-                  Esta seção será preenchida com dados reais quando a integração de provas estiver concluída.
-                </p>
-              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {provas.map((prova) => (
+                <Card key={prova.id} hoverable className="group p-5" accent={prova.status === "PUBLICADA" ? "success" : "warning"}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={prova.status === "PUBLICADA" ? "success" : "warning"} size="sm">
+                          {prova.status === "PUBLICADA" ? "Publicada" : "Rascunho"}
+                        </Badge>
+                        <Badge variant="info" size="sm">{prova.disciplina ?? "Sem disciplina"}</Badge>
+                      </div>
+                      <h4 className="mt-3 text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                        {prova.titulo}
+                      </h4>
+                      <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                        {prova.totalQuestoes} questões · médias indisponíveis
+                      </p>
+                    </div>
+                    <Link to={`/professor/provas/${prova.id}/revisar`}>
+                      <Button size="sm" variant="ghost">
+                        Abrir
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </Card>
+          )}
         </div>
       )}
 

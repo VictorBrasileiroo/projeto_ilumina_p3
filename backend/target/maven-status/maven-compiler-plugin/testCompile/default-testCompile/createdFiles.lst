@@ -1,4 +1,4 @@
 br\com\ilumina\controller\Turma\TurmaControllerIntegrationTest.class
+br\com\ilumina\IluminaBackendApplicationTests.class
 br\com\ilumina\controller\Aluno\AlunoControllerIntegrationTest.class
 br\com\ilumina\controller\Professor\ProfessorControllerIntegrationTest.class
-br\com\ilumina\IluminaBackendApplicationTests.class

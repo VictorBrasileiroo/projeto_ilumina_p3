@@ -5,6 +5,7 @@ import br.com.ilumina.dto.shared.ApiResponse;
 import br.com.ilumina.dto.turma.CreateTurmaRequest;
 import br.com.ilumina.dto.turma.TurmaAlunoVinculoRequest;
 import br.com.ilumina.dto.turma.TurmaResponse;
+import br.com.ilumina.dto.turma.TurmaResumoResponse;
 import br.com.ilumina.dto.turma.TurmaVinculoRequest;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
 import br.com.ilumina.service.Turma.TurmaService;
@@ -237,6 +238,25 @@ public class TurmaController {
         ApiResponse<List<AlunoResponse>> body = ApiResponse.sucess(
                 HttpStatus.OK.value(),
                 "Alunos da turma listados com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
+    @GetMapping("/{id}/resumo")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<TurmaResumoResponse>> getResumoTurma(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        TurmaResumoResponse response = turmaService.getResumoTurma(id, authentication.getName(), isAdmin(authentication));
+
+        ApiResponse<TurmaResumoResponse> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Resumo da turma obtido com sucesso.",
                 response,
                 servletRequest.getRequestURI()
         );

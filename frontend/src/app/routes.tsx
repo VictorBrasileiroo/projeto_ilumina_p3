@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import ProfessorDashboard from "./pages/professor/Dashboard";
 import ProfessorTurmas from "./pages/professor/Turmas";
 import ProfessorTurmaDetalhes from "./pages/professor/TurmaDetalhes";
+import ProfessorListaProvas from "./pages/professor/ListaProvas";
 import ProfessorCriarProva from "./pages/professor/CriarProva";
 import ProfessorRevisarQuestoes from "./pages/professor/RevisarQuestoes";
 import ProfessorFlashcards from "./pages/professor/Flashcards";
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
       { index: true, Component: ProfessorDashboard },
       { path: "turmas", Component: ProfessorTurmas },
       { path: "turmas/:id", Component: ProfessorTurmaDetalhes },
+      { path: "provas", Component: ProfessorListaProvas },
       { path: "provas/criar", Component: ProfessorCriarProva },
       { path: "provas/:id/revisar", Component: ProfessorRevisarQuestoes },
       { path: "flashcards", Component: ProfessorFlashcards },

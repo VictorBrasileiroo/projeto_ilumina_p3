@@ -19,7 +19,7 @@ export function Sidebar({ userType, isOpen = false, onClose, collapsed = false, 
   const professorLinks = [
     { path: '/professor', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/professor/turmas', label: 'Turmas', icon: Users },
-    { path: '/professor/provas/criar', label: 'Criar Prova', icon: FileText },
+    { path: '/professor/provas', label: 'Provas', icon: FileText },
     { path: '/professor/flashcards', label: 'Flashcards', icon: BookOpen },
   ];
 

@@ -14,6 +14,7 @@ const TURNO_LABELS: Record<Turno, string> = {
   MATUTINO: "Manha",
   VESPERTINO: "Tarde",
   NOTURNO: "Noite",
+  INTEGRAL: "Integral",
 };
 
 const ENSINO_LABELS: Record<Ensino, string> = {

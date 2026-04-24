@@ -4,9 +4,14 @@ import br.com.ilumina.dto.aluno.AlunoResponse;
 import br.com.ilumina.dto.turma.CreateTurmaRequest;
 import br.com.ilumina.dto.turma.TurmaProfessorResponse;
 import br.com.ilumina.dto.turma.TurmaResponse;
+import br.com.ilumina.dto.turma.TurmaResumoResponse;
+import br.com.ilumina.dto.turma.TurmaResumoResponse.MediaPorProvaItem;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
 import br.com.ilumina.entity.Aluno.Aluno;
 import br.com.ilumina.entity.Professor.Professor;
+import br.com.ilumina.entity.Prova.Prova;
+import br.com.ilumina.entity.Prova.RespostaAluno;
+import br.com.ilumina.entity.Prova.StatusProva;
 import br.com.ilumina.entity.Turma.AlunoTurma;
 import br.com.ilumina.entity.Turma.ProfTurma;
 import br.com.ilumina.entity.Turma.Turma;
@@ -15,6 +20,8 @@ import br.com.ilumina.exception.BusinessException;
 import br.com.ilumina.exception.ResourceNotFoundException;
 import br.com.ilumina.repository.Aluno.AlunoRepository;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
+import br.com.ilumina.repository.Prova.ProvaRepository;
+import br.com.ilumina.repository.Prova.RespostaAlunoRepository;
 import br.com.ilumina.repository.Turma.AlunoTurmaRepository;
 import br.com.ilumina.repository.Turma.ProfTurmaRepository;
 import br.com.ilumina.repository.Turma.TurmaRepository;
@@ -23,10 +30,14 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class TurmaService {
@@ -37,6 +48,8 @@ public class TurmaService {
     private final AlunoRepository alunoRepository;
     private final ProfessorRepository professorRepository;
     private final UserRepository userRepository;
+    private final ProvaRepository provaRepository;
+    private final RespostaAlunoRepository respostaAlunoRepository;
 
     public TurmaService(
             TurmaRepository turmaRepository,
@@ -44,7 +57,9 @@ public class TurmaService {
             ProfTurmaRepository profTurmaRepository,
             AlunoRepository alunoRepository,
             ProfessorRepository professorRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            ProvaRepository provaRepository,
+            RespostaAlunoRepository respostaAlunoRepository
     ) {
         this.turmaRepository = turmaRepository;
         this.alunoTurmaRepository = alunoTurmaRepository;
@@ -52,6 +67,8 @@ public class TurmaService {
         this.alunoRepository = alunoRepository;
         this.professorRepository = professorRepository;
         this.userRepository = userRepository;
+        this.provaRepository = provaRepository;
+        this.respostaAlunoRepository = respostaAlunoRepository;
     }
 
     @Transactional
@@ -363,6 +380,55 @@ public class TurmaService {
                 .sorted(Comparator.comparing(Turma::getCreatedAt).reversed())
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TurmaResumoResponse getResumoTurma(UUID turmaId, String currentUserEmail, boolean isAdmin) {
+        Turma turma = findTurmaById(turmaId);
+        validateTurmaAccess(turmaId, currentUserEmail, isAdmin);
+
+        List<Prova> provas = provaRepository.findByTurmaIdAndStatus(turmaId, StatusProva.PUBLICADA);
+        int totalAlunos = (int) alunoTurmaRepository.findByTurma_IdOrderByCreatedAtAsc(turmaId).stream().count();
+
+        List<UUID> provaIds = provas.stream().map(Prova::getId).toList();
+        List<RespostaAluno> todasRespostas = provaIds.isEmpty()
+                ? List.of()
+                : respostaAlunoRepository.findByProva_IdIn(provaIds);
+
+        int totalRespostas = todasRespostas.size();
+
+        BigDecimal mediaNota = todasRespostas.isEmpty() ? null
+                : todasRespostas.stream()
+                        .map(RespostaAluno::getNotaFinal)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(totalRespostas), 2, RoundingMode.HALF_UP);
+
+        Map<UUID, List<RespostaAluno>> respostasPorProva = todasRespostas.stream()
+                .collect(Collectors.groupingBy(r -> r.getProva().getId()));
+
+        List<MediaPorProvaItem> mediasPorProva = provas.stream()
+                .map(prova -> {
+                    List<RespostaAluno> provaRespostas = respostasPorProva.getOrDefault(prova.getId(), List.of());
+                    int provaTotal = provaRespostas.size();
+                    BigDecimal provaMedia = provaRespostas.isEmpty() ? null
+                            : provaRespostas.stream()
+                                    .map(RespostaAluno::getNotaFinal)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                    .divide(BigDecimal.valueOf(provaTotal), 2, RoundingMode.HALF_UP);
+                    return new MediaPorProvaItem(prova.getId(), prova.getTitulo(), prova.getDisciplina(), provaTotal, provaMedia);
+                })
+                .sorted(Comparator.comparing(MediaPorProvaItem::titulo))
+                .toList();
+
+        return new TurmaResumoResponse(
+                turma.getId(),
+                turma.getNome(),
+                totalAlunos,
+                provas.size(),
+                totalRespostas,
+                mediaNota,
+                mediasPorProva
+        );
     }
 
     @Transactional(readOnly = true)

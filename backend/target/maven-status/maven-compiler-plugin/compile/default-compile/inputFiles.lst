@@ -40,6 +40,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professo
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\professor\UpdateProfessorRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\AlternativaAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\AlternativaResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\AlunoProvaResumoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateAlternativaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateProvaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\prova\CreateQuestaoRequest.java
@@ -62,6 +63,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\Cr
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\TurmaAlunoVinculoRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\TurmaProfessorResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\TurmaResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\TurmaResumoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\TurmaVinculoRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\turma\UpdateTurmaRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\entity\Aluno\Aluno.java

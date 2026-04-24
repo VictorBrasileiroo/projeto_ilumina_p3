@@ -13,6 +13,7 @@ export interface HttpRequestOptions extends Omit<RequestInit, "body" | "headers"
   headers?: HeadersInit;
   retryOnAuthFailure?: boolean;
   skipRefresh?: boolean;
+  timeoutMs?: number;
 }
 
 interface InternalHttpRequestOptions extends HttpRequestOptions {
@@ -124,8 +125,8 @@ function resolveErrorMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-function buildRequestInit(options: InternalHttpRequestOptions): RequestInit {
-  const { auth = true, body, headers, ...requestInit } = options;
+function buildRequestInit(options: InternalHttpRequestOptions, signal?: AbortSignal): RequestInit {
+  const { auth = true, body, headers, timeoutMs: _timeoutMs, signal: _signal, ...requestInit } = options;
   const session = auth ? getAuthSession() : null;
   const nextHeaders = new Headers(headers ?? {});
 
@@ -149,11 +150,40 @@ function buildRequestInit(options: InternalHttpRequestOptions): RequestInit {
     ...requestInit,
     headers: nextHeaders,
     body: nextBody,
+    signal,
   };
 }
 
 async function rawRequest<T>(path: string, options: InternalHttpRequestOptions = {}): Promise<T> {
-  const response = await fetch(buildUrl(path), buildRequestInit(options));
+  const timeoutMs = options.timeoutMs;
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = controller
+    ? window.setTimeout(() => controller.abort(), timeoutMs)
+    : null;
+
+  if (controller && options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      options.signal.addEventListener("abort", () => controller.abort(), { once: true });
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path), buildRequestInit(options, controller?.signal ?? options.signal));
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError" && timeoutMs) {
+      throw new HttpError("Tempo limite da requisicao excedido.", 408, null);
+    }
+
+    throw error;
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
   const data = await parseResponseBody(response);
 
   if (!response.ok) {

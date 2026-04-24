@@ -1,5 +1,6 @@
 package br.com.ilumina.controller.Prova;
 
+import br.com.ilumina.dto.prova.AlunoProvaResumoResponse;
 import br.com.ilumina.dto.prova.ProvaAlunoResponse;
 import br.com.ilumina.dto.prova.ProvaDetalheAlunoResponse;
 import br.com.ilumina.dto.prova.ResultadoProvaResponse;
@@ -32,6 +33,24 @@ public class AlunoProvaController {
 
     public AlunoProvaController(AlunoProvaService alunoProvaService) {
         this.alunoProvaService = alunoProvaService;
+    }
+
+    @GetMapping("/resumo")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ALUNO')")
+    public ResponseEntity<ApiResponse<AlunoProvaResumoResponse>> getResumoAluno(
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        AlunoProvaResumoResponse response = alunoProvaService.getResumoAluno(authentication.getName());
+
+        ApiResponse<AlunoProvaResumoResponse> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Resumo do aluno obtido com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping

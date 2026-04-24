@@ -1,6 +1,8 @@
 package br.com.ilumina.service.Prova;
 
 import br.com.ilumina.dto.prova.AlternativaAlunoResponse;
+import br.com.ilumina.dto.prova.AlunoProvaResumoResponse;
+import br.com.ilumina.dto.prova.AlunoProvaResumoResponse.ResumoPorDisciplinaItem;
 import br.com.ilumina.dto.prova.ProvaAlunoResponse;
 import br.com.ilumina.dto.prova.ProvaDetalheAlunoResponse;
 import br.com.ilumina.dto.prova.QuestaoAlunoResponse;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -40,6 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class AlunoProvaService {
@@ -236,6 +240,63 @@ public class AlunoProvaService {
 
         validarAcessoProvaParaAluno(prova, aluno, true);
         throw new ResourceNotFoundException("Resultado não encontrado para esta prova.");
+    }
+
+    @Transactional(readOnly = true)
+    public AlunoProvaResumoResponse getResumoAluno(String email) {
+        Aluno aluno = resolveCurrentAlunoRequiredByEmail(email);
+
+        List<UUID> turmaIds = alunoTurmaRepository.findByAluno_Id(aluno.getId())
+                .stream()
+                .map(vinculo -> vinculo.getTurma().getId())
+                .distinct()
+                .toList();
+
+        if (turmaIds.isEmpty()) {
+            return new AlunoProvaResumoResponse(0, 0, 0, null, List.of());
+        }
+
+        List<Prova> provas = provaRepository.findByTurmaIdInAndStatus(turmaIds, StatusProva.PUBLICADA);
+        List<RespostaAluno> respostas = respostaAlunoRepository.findByAluno_Id(aluno.getId());
+
+        Map<UUID, RespostaAluno> respostasPorProva = respostas.stream()
+                .collect(Collectors.toMap(r -> r.getProva().getId(), r -> r));
+
+        int totalProvas = provas.size();
+        int totalRespondidas = (int) provas.stream()
+                .filter(p -> respostasPorProva.containsKey(p.getId()))
+                .count();
+        int totalPendentes = totalProvas - totalRespondidas;
+
+        BigDecimal mediaNota = respostas.isEmpty() ? null
+                : respostas.stream()
+                        .map(RespostaAluno::getNotaFinal)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(respostas.size()), 2, RoundingMode.HALF_UP);
+
+        Map<String, List<Prova>> provasPorDisciplina = provas.stream()
+                .collect(Collectors.groupingBy(p -> p.getDisciplina() != null ? p.getDisciplina() : "Sem disciplina"));
+
+        List<ResumoPorDisciplinaItem> porDisciplina = provasPorDisciplina.entrySet().stream()
+                .map(entry -> {
+                    String disc = entry.getKey();
+                    List<Prova> discProvas = entry.getValue();
+                    List<RespostaAluno> discRespostas = discProvas.stream()
+                            .filter(p -> respostasPorProva.containsKey(p.getId()))
+                            .map(p -> respostasPorProva.get(p.getId()))
+                            .toList();
+                    int discRespondidas = discRespostas.size();
+                    BigDecimal discMedia = discRespostas.isEmpty() ? null
+                            : discRespostas.stream()
+                                    .map(RespostaAluno::getNotaFinal)
+                                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+                                    .divide(BigDecimal.valueOf(discRespondidas), 2, RoundingMode.HALF_UP);
+                    return new ResumoPorDisciplinaItem(disc, discProvas.size(), discRespondidas, discMedia);
+                })
+                .sorted(Comparator.comparing(ResumoPorDisciplinaItem::disciplina))
+                .toList();
+
+        return new AlunoProvaResumoResponse(totalProvas, totalRespondidas, totalPendentes, mediaNota, porDisciplina);
     }
 
     private void validarQuantidadeRespostas(List<RespostaItemRequest> respostas, int totalQuestoes) {

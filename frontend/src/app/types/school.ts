@@ -1,4 +1,4 @@
-export type Turno = "MATUTINO" | "VESPERTINO" | "NOTURNO";
+export type Turno = "MATUTINO" | "VESPERTINO" | "NOTURNO" | "INTEGRAL";
 export type Ensino = "INFANTIL" | "FUNDAMENTAL" | "MEDIO" | "SUPERIOR";
 
 export interface CreateProfessorRequest {

@@ -13,6 +13,7 @@ interface TopBarProps {
 const breadcrumbMap: Record<string, string> = {
   '/professor': 'Dashboard',
   '/professor/turmas': 'Turmas',
+  '/professor/provas': 'Provas',
   '/professor/provas/criar': 'Criar Prova',
   '/professor/flashcards': 'Flashcards',
   '/aluno': 'Dashboard',
