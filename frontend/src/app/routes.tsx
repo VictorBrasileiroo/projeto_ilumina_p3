@@ -30,6 +30,14 @@ export const router = createBrowserRouter([
     Component: Register,
   },
   {
+    path: "/cadastro/professor",
+    Component: Register,
+  },
+  {
+    path: "/cadastro/aluno",
+    Component: Register,
+  },
+  {
     path: "/sem-permissao",
     Component: SemPermissao,
   },

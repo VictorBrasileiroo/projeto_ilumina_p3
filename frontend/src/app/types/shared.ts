@@ -1,9 +1,10 @@
 export type Nullable<T> = T | null;
 
 export interface ApiResponse<T> {
-  sucess: boolean;
+  success: boolean;
   data: T;
   message?: string;
+  errors?: string[] | null;
 }
 
 export interface ApiErrorBody {

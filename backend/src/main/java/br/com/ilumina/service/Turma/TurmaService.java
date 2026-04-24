@@ -287,6 +287,33 @@ public class TurmaService {
     }
 
     @Transactional(readOnly = true)
+    public List<AlunoResponse> findAvailableStudentsForEnrollment(
+            UUID turmaId,
+            String query,
+            String currentUserEmail,
+            boolean isAdmin
+    ) {
+        findTurmaById(turmaId);
+
+        if (!isAdmin) {
+            Professor currentProfessor = resolveCurrentProfessorRequiredByEmail(currentUserEmail);
+            if (!isProfessorLinkedToTurma(currentProfessor.getId(), turmaId)) {
+                throw new AccessDeniedException("Acesso negado.");
+            }
+        }
+
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
+
+        return alunoRepository.findByUserActiveTrueOrderByCreatedAtDesc()
+                .stream()
+                .filter(aluno -> !alunoTurmaRepository.existsByAluno_IdAndTurma_Id(aluno.getId(), turmaId))
+                .filter(aluno -> normalizedQuery.isBlank() || matchesAlunoSearch(aluno, normalizedQuery))
+                .limit(20)
+                .map(this::toAlunoResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<AlunoResponse> findStudentsPublic(UUID turmaId) {
         findTurmaById(turmaId);
         return listStudentsByTurmaId(turmaId);
@@ -298,6 +325,17 @@ public class TurmaService {
                 .map(AlunoTurma::getAluno)
                 .map(this::toAlunoResponse)
                 .toList();
+    }
+
+    private boolean matchesAlunoSearch(Aluno aluno, String normalizedQuery) {
+        User user = aluno.getUser();
+        return containsIgnoreCase(user.getName(), normalizedQuery)
+                || containsIgnoreCase(user.getEmail(), normalizedQuery)
+                || containsIgnoreCase(aluno.getMatricula(), normalizedQuery);
+    }
+
+    private boolean containsIgnoreCase(String value, String normalizedQuery) {
+        return value != null && value.toLowerCase().contains(normalizedQuery);
     }
 
     @Transactional(readOnly = true)

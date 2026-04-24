@@ -244,6 +244,31 @@ public class TurmaController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/{id}/alunos-disponiveis")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROFESSOR')")
+    public ResponseEntity<ApiResponse<List<AlunoResponse>>> findAvailableStudentsForEnrollment(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "") String query,
+            Authentication authentication,
+            HttpServletRequest servletRequest
+    ) {
+        List<AlunoResponse> response = turmaService.findAvailableStudentsForEnrollment(
+                id,
+                query,
+                authentication.getName(),
+                isAdmin(authentication)
+        );
+
+        ApiResponse<List<AlunoResponse>> body = ApiResponse.sucess(
+                HttpStatus.OK.value(),
+                "Alunos disponíveis para matrícula listados com sucesso.",
+                response,
+                servletRequest.getRequestURI()
+        );
+
+        return ResponseEntity.ok(body);
+    }
+
         @GetMapping("/{id}/matriculas/publico")
         public ResponseEntity<ApiResponse<List<AlunoResponse>>> findStudentsPublic(
                         @PathVariable UUID id,

@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowLeft, BookOpen, GraduationCap } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import logoSvg from "../../imports/ilumina_logo.svg";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { useAuth } from "../hooks/useAuth";
-import { LOGIN_ROUTE, ROLE_ALUNO, ROLE_PROFESSOR } from "../lib/constants";
+import {
+  LOGIN_ROUTE,
+  REGISTER_ALUNO_ROUTE,
+  REGISTER_PROFESSOR_ROUTE,
+  ROLE_ALUNO,
+  ROLE_PROFESSOR,
+} from "../lib/constants";
 import { extractHttpErrorMessage, HttpError } from "../lib/http";
 import { getDefaultHomePath } from "../lib/mappings";
+import { alunoService } from "../services/alunoService";
+import { professorService } from "../services/professorService";
 import type { RegisterRole } from "../types/auth";
 
 function getRegisterErrorMessage(error: unknown): string {
@@ -18,23 +26,46 @@ function getRegisterErrorMessage(error: unknown): string {
     }
 
     if (error.status === 409) {
-      return "Ja existe uma conta cadastrada com este e-mail.";
+      return "Ja existe uma conta cadastrada com estes dados.";
     }
   }
 
   return extractHttpErrorMessage(error, "Nao foi possivel concluir o cadastro agora.");
 }
 
+function getFixedRole(pathname: string): RegisterRole | null {
+  if (pathname === REGISTER_PROFESSOR_ROUTE) {
+    return ROLE_PROFESSOR;
+  }
+
+  if (pathname === REGISTER_ALUNO_ROUTE) {
+    return ROLE_ALUNO;
+  }
+
+  return null;
+}
+
 export default function Register() {
   const navigate = useNavigate();
-  const { register, isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const fixedRole = useMemo(() => getFixedRole(location.pathname), [location.pathname]);
+  const [role, setRole] = useState<RegisterRole>(fixedRole ?? ROLE_PROFESSOR);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<RegisterRole>(ROLE_PROFESSOR);
+  const [disciplina, setDisciplina] = useState("");
+  const [matricula, setMatricula] = useState("");
+  const [sexo, setSexo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fixedRole) {
+      setRole(fixedRole);
+    }
+  }, [fixedRole]);
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) {
@@ -43,6 +74,8 @@ export default function Register() {
 
     navigate(getDefaultHomePath(user.roles), { replace: true });
   }, [isAuthenticated, isLoading, navigate, user]);
+
+  const isProfessor = role === ROLE_PROFESSOR;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -56,12 +89,23 @@ export default function Register() {
     setError(null);
 
     try {
-      await register({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-        role,
-      });
+      if (isProfessor) {
+        await professorService.register({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          disciplina: disciplina.trim(),
+          sexo: sexo.trim(),
+        });
+      } else {
+        await alunoService.register({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          matricula: matricula.trim(),
+          sexo: sexo.trim(),
+        });
+      }
     } catch (nextError) {
       setError(getRegisterErrorMessage(nextError));
     } finally {
@@ -143,82 +187,69 @@ export default function Register() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-8">
-              <button
-                type="button"
-                onClick={() => setRole(ROLE_PROFESSOR)}
-                disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
-                  role === ROLE_PROFESSOR
-                    ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]"
-                    : "border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]"
-                }`}
-                style={{ fontWeight: role === ROLE_PROFESSOR ? 600 : 400 }}
-              >
-                <GraduationCap size={18} />
-                Professor
-              </button>
+            {!fixedRole && (
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                <button
+                  type="button"
+                  onClick={() => setRole(ROLE_PROFESSOR)}
+                  disabled={isSubmitting}
+                  className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
+                    isProfessor
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]"
+                      : "border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]"
+                  }`}
+                  style={{ fontWeight: isProfessor ? 600 : 400 }}
+                >
+                  <GraduationCap size={18} />
+                  Professor
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setRole(ROLE_ALUNO)}
-                disabled={isSubmitting}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
-                  role === ROLE_ALUNO
-                    ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]"
-                    : "border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]"
-                }`}
-                style={{ fontWeight: role === ROLE_ALUNO ? 600 : 400 }}
-              >
-                <BookOpen size={18} />
-                Aluno
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setRole(ROLE_ALUNO)}
+                  disabled={isSubmitting}
+                  className={`flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--border-radius-lg)] border-2 transition-all text-sm ${
+                    !isProfessor
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-surface)] text-[var(--color-primary)]"
+                      : "border-[var(--color-neutral-100)] text-[var(--color-neutral-500)] hover:border-[var(--color-neutral-200)]"
+                  }`}
+                  style={{ fontWeight: !isProfessor ? 600 : 400 }}
+                >
+                  <BookOpen size={18} />
+                  Aluno
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <Input
-                type="text"
-                label="Nome"
-                placeholder="Seu nome completo"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                disabled={isSubmitting}
-                fullWidth
-                required
-              />
+              <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} disabled={isSubmitting} fullWidth required />
+              <Input type="email" label="E-mail" value={email} onChange={(event) => setEmail(event.target.value)} disabled={isSubmitting} fullWidth required />
+              <Input type="password" label="Senha" value={password} onChange={(event) => setPassword(event.target.value)} disabled={isSubmitting} fullWidth required />
+              <Input type="password" label="Confirmar senha" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} disabled={isSubmitting} fullWidth required />
 
-              <Input
-                type="email"
-                label="E-mail"
-                placeholder="seu.email@exemplo.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                disabled={isSubmitting}
-                fullWidth
-                required
-              />
+              {isProfessor ? (
+                <Input label="Disciplina" placeholder="Ex: Matematica" value={disciplina} onChange={(event) => setDisciplina(event.target.value)} disabled={isSubmitting} fullWidth required />
+              ) : (
+                <Input label="Matricula" placeholder="Ex: 2026001" value={matricula} onChange={(event) => setMatricula(event.target.value)} disabled={isSubmitting} fullWidth required />
+              )}
 
-              <Input
-                type="password"
-                label="Senha"
-                placeholder="Crie uma senha com pelo menos 6 caracteres"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={isSubmitting}
-                fullWidth
-                required
-              />
-
-              <Input
-                type="password"
-                label="Confirmar senha"
-                placeholder="Digite a senha novamente"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                disabled={isSubmitting}
-                fullWidth
-                required
-              />
+              <div>
+                <label className="block text-[14px] text-[var(--color-neutral-700)] mb-1.5" style={{ fontWeight: 600 }}>
+                  Sexo/genero
+                </label>
+                <select
+                  value={sexo}
+                  onChange={(event) => setSexo(event.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-3 py-[7px] text-sm border rounded-[var(--border-radius)] border-[var(--color-neutral-200)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)] focus:border-[var(--color-primary)] transition-all bg-white disabled:bg-[var(--color-neutral-50)] disabled:cursor-not-allowed disabled:text-[var(--color-neutral-400)]"
+                  required
+                >
+                  <option value="">Selecione uma opcao</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Feminino">Feminino</option>
+                  <option value="Prefiro não informar">Prefiro não informar</option>
+                </select>
+              </div>
 
               <div className="rounded-[var(--border-radius)] border border-[var(--color-neutral-100)] bg-[var(--color-neutral-50)] px-4 py-3 text-[13px] text-[var(--color-neutral-600)]">
                 Depois de criar a conta, voce entra direto na area correspondente ao perfil escolhido aqui.
@@ -245,6 +276,17 @@ export default function Register() {
                 >
                   Entrar na plataforma
                 </Link>
+              </p>
+              <p className="mt-3 text-[13px] text-[var(--color-neutral-500)]">
+                {isProfessor ? (
+                  <Link to={REGISTER_ALUNO_ROUTE} className="text-[var(--color-primary)] hover:underline" style={{ fontWeight: 600 }}>
+                    Criar conta de aluno
+                  </Link>
+                ) : (
+                  <Link to={REGISTER_PROFESSOR_ROUTE} className="text-[var(--color-primary)] hover:underline" style={{ fontWeight: 600 }}>
+                    Criar conta de professor
+                  </Link>
+                )}
               </p>
             </div>
           </div>

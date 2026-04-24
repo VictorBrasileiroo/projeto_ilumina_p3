@@ -757,6 +757,39 @@ class TurmaControllerIntegrationTest {
     }
 
     @Test
+    void listAvailableStudentsShouldFilterByQueryAndExcludeEnrolledStudents() throws Exception {
+        Professor professor = createProfessorDirectly("Professor Busca", "busca@ilumina.com", "Geo", "Feminino", true);
+        Aluno alunoDisponivel = createAlunoDirectly("Ana Disponivel", "ana.disponivel@ilumina.com", "MAT-ANA", "Feminino", true);
+        Aluno alunoMatriculado = createAlunoDirectly("Ana Matriculada", "ana.matriculada@ilumina.com", "MAT-MATRICULADA", "Feminino", true);
+        createAlunoDirectly("Bruno Fora", "bruno.fora@ilumina.com", "MAT-BRUNO", "Masculino", true);
+        Turma turma = createTurmaDirectly("Turma Busca", 6, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 26, true);
+        linkProfessorTurma(professor, turma);
+        linkAlunoTurma(alunoMatriculado, turma);
+
+        mockMvc.perform(get("/api/v1/turmas/{id}/alunos-disponiveis", turma.getId())
+                        .with(user("busca@ilumina.com").roles("PROFESSOR"))
+                        .param("query", "ana"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].id").value(alunoDisponivel.getId().toString()));
+    }
+
+    @Test
+    void listAvailableStudentsAsUnlinkedProfessorShouldReturnForbidden() throws Exception {
+        Professor owner = createProfessorDirectly("Professor Owner Busca", "owner.busca@ilumina.com", "Geo", "Feminino", true);
+        createProfessorDirectly("Professor Fora Busca", "fora.busca@ilumina.com", "Mat", "Masculino", true);
+        createAlunoDirectly("Aluno Busca", "aluno.busca@ilumina.com", "MAT-BUSCA", "Feminino", true);
+        Turma turma = createTurmaDirectly("Turma Busca Restrita", 6, Turno.VESPERTINO, Ensino.FUNDAMENTAL, 29, true);
+        linkProfessorTurma(owner, turma);
+
+        mockMvc.perform(get("/api/v1/turmas/{id}/alunos-disponiveis", turma.getId())
+                        .with(user("fora.busca@ilumina.com").roles("PROFESSOR"))
+                        .param("query", "aluno"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void unenrollStudentAsLinkedProfessorShouldRemoveEnrollment() throws Exception {
         Professor professor = createProfessorDirectly("Professor Unenroll", "unenroll@ilumina.com", "Mat", "Masculino", true);
         Aluno aluno = createAlunoDirectly("Aluno Unenroll", "aluno.unenroll@ilumina.com", "MAT-501", "Feminino", true);

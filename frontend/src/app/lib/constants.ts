@@ -3,6 +3,8 @@ export const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8
 export const AUTH_STORAGE_KEY = "ilumina.auth.session";
 export const LOGIN_ROUTE = "/";
 export const REGISTER_ROUTE = "/cadastro";
+export const REGISTER_PROFESSOR_ROUTE = "/cadastro/professor";
+export const REGISTER_ALUNO_ROUTE = "/cadastro/aluno";
 export const FORBIDDEN_ROUTE = "/sem-permissao";
 export const ACCESS_TOKEN_BUFFER_MS = 30_000;
 
