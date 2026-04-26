@@ -8,8 +8,10 @@ import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { extractHttpErrorMessage } from "../../lib/http";
+import { colecaoService } from "../../services/colecaoService";
 import { provaService } from "../../services/provaService";
 import { turmaService } from "../../services/turmaService";
+import type { ColecaoResponse } from "../../types/flashcard";
 import type { ProvaResponse } from "../../types/prova";
 import type { AlunoResponse, Ensino, TurmaResponse, Turno } from "../../types/school";
 
@@ -33,6 +35,7 @@ export default function TurmaDetalhes() {
   const [turma, setTurma] = useState<TurmaResponse | null>(null);
   const [alunos, setAlunos] = useState<AlunoResponse[]>([]);
   const [provas, setProvas] = useState<ProvaResponse[]>([]);
+  const [colecoes, setColecoes] = useState<ColecaoResponse[]>([]);
   const [availableStudents, setAvailableStudents] = useState<AlunoResponse[]>([]);
   const [activeTab, setActiveTab] = useState<"alunos" | "provas" | "flashcards">("alunos");
   const [searchTerm, setSearchTerm] = useState("");
@@ -55,10 +58,14 @@ export default function TurmaDetalhes() {
         turmaService.getById(id),
         turmaService.listStudents(id),
       ]);
-      const nextProvas = await provaService.listar();
+      const [nextProvas, nextColecoes] = await Promise.all([
+        provaService.listar(),
+        colecaoService.listar(),
+      ]);
       setTurma(nextTurma);
       setAlunos(nextAlunos);
       setProvas(nextProvas.filter((prova) => prova.turmaId === id));
+      setColecoes(nextColecoes.filter((colecao) => colecao.turmaNome === nextTurma.nome));
     } catch (nextError) {
       setError(extractHttpErrorMessage(nextError, "Nao foi possivel carregar a turma."));
     } finally {
@@ -136,7 +143,7 @@ export default function TurmaDetalhes() {
   const tabs = [
     { key: "alunos" as const, label: "Alunos", icon: Users, count: alunos.length },
     { key: "provas" as const, label: "Provas", icon: FileText, count: provas.length },
-    { key: "flashcards" as const, label: "Flashcards", icon: BookOpen, count: 0 },
+    { key: "flashcards" as const, label: "Flashcards", icon: BookOpen, count: colecoes.length },
   ];
 
   if (isLoading) {
@@ -218,7 +225,7 @@ export default function TurmaDetalhes() {
               <BookOpen size={18} className="text-[var(--color-primary)]" />
             </div>
             <div>
-              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>--</p>
+              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>{colecoes.length}</p>
               <p className="text-[12px] text-[var(--color-neutral-400)]">Coleções</p>
             </div>
           </div>
@@ -370,7 +377,7 @@ export default function TurmaDetalhes() {
           ) : (
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               {provas.map((prova) => (
-                <Card key={prova.id} hoverable className="group p-5" accent={prova.status === "PUBLICADA" ? "success" : "warning"}>
+                <Card key={prova.id} hoverable className="group p-5" accent={prova.status === "PUBLICADA" ? "success" : "warning"} onClick={() => navigate(`/professor/provas/${prova.id}/revisar`)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -410,21 +417,51 @@ export default function TurmaDetalhes() {
             </Link>
           </div>
 
-          <Card className="p-5" accent="warning">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
-                <BookOpen size={18} />
+          {colecoes.length === 0 ? (
+            <Card className="p-5" accent="warning">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                    Nenhuma coleção vinculada
+                  </h4>
+                  <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                    Crie uma coleção para esta turma no fluxo de flashcards.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-[14px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
-                  Dados de flashcards indisponíveis neste bloco
-                </h4>
-                <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
-                  Esta seção será preenchida com dados reais quando a integração de flashcards estiver concluída.
-                </p>
-              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {colecoes.map((colecao) => (
+                <Card key={colecao.id} hoverable className="group p-5" accent={colecao.status === "PUBLICADA" ? "success" : "warning"} onClick={() => navigate(`/professor/flashcards/${colecao.id}`)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={colecao.status === "PUBLICADA" ? "success" : "warning"} size="sm">
+                          {colecao.status === "PUBLICADA" ? "Publicada" : "Rascunho"}
+                        </Badge>
+                        <Badge variant="info" size="sm">{colecao.tema ?? "Sem tema"}</Badge>
+                      </div>
+                      <h4 className="mt-3 text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                        {colecao.titulo}
+                      </h4>
+                      <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                        {colecao.totalFlashcards} cards
+                      </p>
+                    </div>
+                    <Link to={`/professor/flashcards/${colecao.id}`}>
+                      <Button size="sm" variant="ghost">
+                        Abrir
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </Card>
+          )}
         </div>
       )}
     </div>

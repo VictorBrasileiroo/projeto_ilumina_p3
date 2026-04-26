@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
@@ -12,8 +12,10 @@ import {
   Users,
 } from 'lucide-react';
 import { extractHttpErrorMessage } from '../../lib/http';
+import { colecaoService } from '../../services/colecaoService';
 import { provaService } from '../../services/provaService';
 import { turmaService } from '../../services/turmaService';
+import type { ColecaoResponse } from '../../types/flashcard';
 import type { ProvaResponse } from '../../types/prova';
 import type { Ensino, TurmaResponse } from '../../types/school';
 
@@ -25,8 +27,10 @@ const ENSINO_LABELS: Record<Ensino, string> = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [turmas, setTurmas] = useState<TurmaResponse[]>([]);
   const [provas, setProvas] = useState<ProvaResponse[]>([]);
+  const [colecoes, setColecoes] = useState<ColecaoResponse[]>([]);
   const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +43,28 @@ export default function Dashboard() {
       setError(null);
 
       try {
-        const [nextTurmas, nextProvas] = await Promise.all([
+        const [turmaResult, provaResult, colecaoResult] = await Promise.allSettled([
           turmaService.list(),
           provaService.listar(),
+          colecaoService.listar(),
         ]);
+
+        const nextTurmas = turmaResult.status === "fulfilled" ? turmaResult.value : [];
+        const nextProvas = provaResult.status === "fulfilled" ? provaResult.value : [];
+        const nextColecoes = colecaoResult.status === "fulfilled" ? colecaoResult.value : [];
 
         if (active) {
           setTurmas(nextTurmas);
           setProvas(nextProvas);
+          setColecoes(nextColecoes);
+
+          if (turmaResult.status === "rejected") {
+            setError(extractHttpErrorMessage(turmaResult.reason, 'Nao foi possivel carregar as turmas.'));
+          } else if (provaResult.status === "rejected") {
+            setError(extractHttpErrorMessage(provaResult.reason, 'Nao foi possivel carregar as provas.'));
+          } else if (colecaoResult.status === "rejected") {
+            setError(extractHttpErrorMessage(colecaoResult.reason, 'Nao foi possivel carregar as colecoes.'));
+          }
         }
 
         const countResults = await Promise.allSettled(
@@ -90,10 +108,19 @@ export default function Dashboard() {
     [provas],
   );
 
+  const recentColecoes = useMemo(
+    () => [...colecoes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 3),
+    [colecoes],
+  );
+
+  function countColecoesByTurmaName(turmaNome: string) {
+    return colecoes.filter((colecao) => colecao.turmaNome === turmaNome).length;
+  }
+
   const stats = [
     { label: 'Turmas Ativas', value: isLoading ? '...' : String(turmas.length), icon: Users, bg: 'bg-[var(--color-primary-surface)]', color: 'text-[var(--color-primary)]', change: 'cadastradas' },
     { label: 'Provas Criadas', value: isLoading ? '...' : String(provas.length), icon: FileText, bg: 'bg-[var(--color-success-surface)]', color: 'text-[var(--color-success)]', change: 'cadastradas' },
-    { label: 'Coleções de Flashcards', value: '--', icon: BookOpen, bg: 'bg-[var(--color-warning-surface)]', color: 'text-[#6B5900]', change: 'bloco futuro' },
+    { label: 'Coleções de Flashcards', value: isLoading ? '...' : String(colecoes.length), icon: BookOpen, bg: 'bg-[var(--color-warning-surface)]', color: 'text-[#6B5900]', change: 'cadastradas' },
     { label: 'Total de Alunos', value: isLoading ? '...' : String(totalStudents), icon: TrendingUp, bg: 'bg-[var(--color-info-surface)]', color: 'text-[var(--color-primary)]', change: 'matriculados' },
   ];
 
@@ -167,7 +194,13 @@ export default function Dashboard() {
                 </div>
               </Card>
             ) : recentProvas.map((prova) => (
-              <Card key={prova.id} hoverable className="group p-5" accent={prova.status === 'PUBLICADA' ? 'success' : 'warning'}>
+              <Card
+                key={prova.id}
+                hoverable
+                className="group p-5"
+                accent={prova.status === 'PUBLICADA' ? 'success' : 'warning'}
+                onClick={() => navigate(`/professor/provas/${prova.id}/revisar`)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -248,7 +281,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                     <div className="rounded-[var(--border-radius)] bg-[var(--color-primary-surface)] px-2.5 py-1 text-[11px] text-[var(--color-primary)]">
-                      -- coleções
+                      {countColecoesByTurmaName(turma.nome)} coleções
                     </div>
                   </div>
 
@@ -271,8 +304,8 @@ export default function Dashboard() {
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h3 className="text-[15px]">Coleções em Andamento</h3>
-            <p className="mt-0.5 text-[12px] text-[var(--color-neutral-400)]">Materiais criados para reforçar o estudo das turmas</p>
+            <h3 className="text-[15px]">Coleções Recentes</h3>
+            <p className="mt-0.5 text-[12px] text-[var(--color-neutral-400)]">Últimas coleções criadas para reforçar o estudo das turmas</p>
           </div>
           <Link to="/professor/flashcards" className="text-[var(--color-primary)] text-[13px] hover:underline flex items-center gap-1" style={{ fontWeight: 500 }}>
             Ver coleções <ArrowRight size={14} />
@@ -280,21 +313,93 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <Card className="p-5" accent="warning">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
-                <BookOpen size={18} />
+          {isLoading ? (
+            <Card className="p-5 text-sm text-[var(--color-neutral-500)]">Carregando coleções...</Card>
+          ) : recentColecoes.length === 0 ? (
+            <Card className="p-5" accent="warning">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] bg-[var(--color-warning-surface)] text-[#6B5900]">
+                  <BookOpen size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
+                    Nenhuma coleção criada ainda
+                  </h4>
+                  <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
+                    As últimas coleções aparecerão aqui quando forem criadas.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-[15px] text-[var(--color-neutral-800)]" style={{ fontWeight: 700 }}>
-                  Dados de coleções indisponíveis neste bloco
-                </h4>
-                <p className="mt-1 text-[13px] text-[var(--color-neutral-500)]">
-                  Esta seção será preenchida com dados reais quando a integração de flashcards estiver concluída.
-                </p>
+            </Card>
+          ) : recentColecoes.map((colecao) => (
+            <Card
+              key={colecao.id}
+              hoverable
+              className="group overflow-hidden p-0"
+              onClick={() => navigate(`/professor/flashcards/${colecao.id}`)}
+            >
+              <div
+                className="relative overflow-hidden px-5 pb-5 pt-5"
+                style={{
+                  background: colecao.status === 'PUBLICADA'
+                    ? 'linear-gradient(135deg, #04712C 0%, #0E8F3F 50%, var(--color-primary) 100%)'
+                    : 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
+                }}
+              >
+                <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/10" />
+                <div className="absolute bottom-0 left-0 h-1 w-28 bg-[var(--color-secondary-yellow)]" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--border-radius-lg)] border border-white/15 bg-white/10 text-white shadow-[var(--shadow-sm)] backdrop-blur-sm">
+                      <BookOpen size={22} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-white/70">Flashcards</p>
+                      <h4 className="truncate text-[17px] text-white" style={{ fontWeight: 700 }}>{colecao.titulo}</h4>
+                      <p className="mt-1 truncate text-[13px] text-white/85">Turma {colecao.turmaNome}</p>
+                    </div>
+                  </div>
+                  <Badge variant={colecao.status === 'PUBLICADA' ? 'success' : 'warning'} size="sm">
+                    {colecao.status === 'PUBLICADA' ? 'Publicada' : 'Rascunho'}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          </Card>
+
+              <div className="p-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-[var(--border-radius)] border border-[var(--color-neutral-100)] bg-[var(--color-neutral-50)] p-4">
+                    <div className="flex items-center gap-1 text-[12px] text-[var(--color-neutral-400)]">
+                      <BookOpen size={12} />
+                      Cards
+                    </div>
+                    <p className="mt-2 text-[15px] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>
+                      {colecao.totalFlashcards}
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--border-radius)] border border-[var(--color-success-surface)] bg-[var(--color-success-surface)] p-4">
+                    <div className="flex items-center gap-1 text-[12px] text-[var(--color-secondary-green-dark)]">
+                      <Users size={12} />
+                      Status
+                    </div>
+                    <p className="mt-2 text-[15px] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>
+                      {colecao.status === 'PUBLICADA' ? 'Publicada' : 'Rascunho'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-[var(--color-neutral-100)] pt-4">
+                  <p className="text-[13px] text-[var(--color-neutral-400)]">
+                    {colecao.status === 'PUBLICADA' ? 'Coleção já compartilhada com a turma.' : 'Coleção ainda em preparação.'}
+                  </p>
+                  <Link to={`/professor/flashcards/${colecao.id}`} className="inline-flex items-center gap-1 text-[var(--color-primary)] text-[14px] hover:underline" style={{ fontWeight: 600 }}>
+                    Ver
+                    <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
     </div>
