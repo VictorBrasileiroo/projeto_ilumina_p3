@@ -63,6 +63,7 @@ backend/.env
 PROTOCOL.md
 CLAUDE.md
 .github/copilot-instructions.md
+.claude/
 
 Tasks/
 
