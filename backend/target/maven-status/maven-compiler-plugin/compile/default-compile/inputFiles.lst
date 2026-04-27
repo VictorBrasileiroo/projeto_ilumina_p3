@@ -5,6 +5,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\LlmPr
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\config\OpenApiConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Aluno\AlunoController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Auth\AuthController.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Busca\BuscaController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Flashcard\AlunoFlashcardController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Flashcard\FlashcardController.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\controller\Professor\ProfessorController.java
@@ -20,6 +21,8 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\Aut
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\LoginRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\RefreshTokenRequest.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\auth\RegisterRequest.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\busca\BuscaGlobalResponse.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\busca\BuscaItemResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\flashcard\ColecaoAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\flashcard\ColecaoDetalheAlunoResponse.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\dto\flashcard\ColecaoDetalheResponse.java
@@ -112,6 +115,7 @@ C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\security\Res
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\security\SecurityConfig.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Aluno\AlunoService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Auth\AuthSeervice.java
+C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Busca\BuscaService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Flashcard\AlunoFlashcardService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Flashcard\FlashcardService.java
 C:\Users\victo\Desktop\Ilumina\backend\src\main\java\br\com\ilumina\service\Llm\LlmService.java

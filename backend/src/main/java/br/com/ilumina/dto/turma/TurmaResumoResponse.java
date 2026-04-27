@@ -11,12 +11,19 @@ public record TurmaResumoResponse(
         int totalProvasPublicadas,
         int totalRespostas,
         BigDecimal mediaNota,
-        List<MediaPorProvaItem> mediasPorProva
+        List<MediaPorProvaItem> mediasPorProva,
+        List<DesempenhoAlunoItem> alunos
 ) {
     public record MediaPorProvaItem(
             UUID provaId,
             String titulo,
             String disciplina,
+            int totalRespostas,
+            BigDecimal mediaNota
+    ) {}
+
+    public record DesempenhoAlunoItem(
+            UUID alunoId,
             int totalRespostas,
             BigDecimal mediaNota
     ) {}

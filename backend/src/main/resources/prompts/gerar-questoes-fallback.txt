@@ -31,5 +31,12 @@ LISTA DE PROIBICOES — violacoes causam rejeicao automatica:
 - Nao repita o mesmo enunciado em questoes diferentes
 - Nao omita nenhuma das 4 alternativas (A, B, C e D sao todas obrigatorias)
 - Nao altere os campos "pontuacao" (sempre 1.0) nem "ordem" (sempre 1, 2, 3...)
+- Nao use padrao sequencial de gabarito como A,B,C,D,A,B,C,D nem concentre o gabarito em uma unica letra.
+
+DISTRIBUICAO DO GABARITO:
+- A letra do gabarito deve variar de forma equilibrada e imprevisivel entre A, B, C e D ao longo das {{QUANTIDADE}} questoes.
+- Cada letra deve aparecer como gabarito aproximadamente {{QUANTIDADE}}/4 vezes, sem ordem previsivel.
+- Decida a letra do gabarito de cada questao de forma genuinamente aleatoria, organizando as alternativas para que a alternativa correta caia em letras diferentes ao longo da prova.
+- Antes de responder, releia os gabaritos. Se notar padrao sequencial ou concentracao em uma letra, redistribua.
 
 Gere exatamente {{QUANTIDADE}} questões. Comece agora.

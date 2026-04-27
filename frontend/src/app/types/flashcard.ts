@@ -45,3 +45,33 @@ export interface GerarFlashcardsRequest {
   tema: string;
   quantidade?: number;
 }
+
+export interface ColecaoAlunoResponse {
+  id: string;
+  titulo: string;
+  tema: string | null;
+  totalFlashcards: number;
+  turmaNome: string;
+}
+
+export interface FlashcardAlunoBackendResponse {
+  id: string;
+  textoFrente: string;
+  textoVerso: string;
+  ordem: number;
+}
+
+export interface FlashcardAlunoResponse {
+  id: string;
+  frente: string;
+  verso: string;
+  ordem: number;
+}
+
+export interface ColecaoDetalheAlunoBackendResponse extends ColecaoAlunoResponse {
+  flashcards: FlashcardAlunoBackendResponse[];
+}
+
+export interface ColecaoDetalheAlunoResponse extends ColecaoAlunoResponse {
+  flashcards: FlashcardAlunoResponse[];
+}

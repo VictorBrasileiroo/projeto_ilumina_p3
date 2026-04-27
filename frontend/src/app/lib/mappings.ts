@@ -9,6 +9,7 @@ import {
 } from "./constants";
 import { getTokenExpirationMs } from "./jwt";
 import type { AuthResponse, AuthSession } from "../types/auth";
+import type { ResultadoProvaResponse } from "../types/prova";
 
 const ROLE_PRIORITY: Record<string, number> = {
   [ROLE_ADMIN]: 0,
@@ -130,4 +131,12 @@ export function extractRedirectPath(state: unknown): string | undefined {
 
   const from = (state as { from?: { pathname?: unknown } }).from;
   return typeof from?.pathname === "string" ? from.pathname : undefined;
+}
+
+export function resultadoToNota(resultado: Pick<ResultadoProvaResponse, "totalAcertos" | "totalQuestoes">): number {
+  if (!resultado.totalQuestoes || resultado.totalQuestoes <= 0) {
+    return 0;
+  }
+
+  return (resultado.totalAcertos / resultado.totalQuestoes) * 10;
 }

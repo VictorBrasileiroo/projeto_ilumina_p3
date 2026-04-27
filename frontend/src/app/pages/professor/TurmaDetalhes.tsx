@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft, Users, FileText, BookOpen, Plus, Search,
-  Mail, TrendingUp, MoreVertical, Edit, Trash2, X
+  Mail, TrendingUp, Edit, Trash2, X
 } from "lucide-react";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
@@ -13,7 +13,7 @@ import { provaService } from "../../services/provaService";
 import { turmaService } from "../../services/turmaService";
 import type { ColecaoResponse } from "../../types/flashcard";
 import type { ProvaResponse } from "../../types/prova";
-import type { AlunoResponse, Ensino, TurmaResponse, Turno } from "../../types/school";
+import type { AlunoResponse, Ensino, TurmaResponse, TurmaResumoResponse, Turno } from "../../types/school";
 
 const TURNO_LABELS: Record<Turno, string> = {
   MATUTINO: "Manha",
@@ -36,6 +36,7 @@ export default function TurmaDetalhes() {
   const [alunos, setAlunos] = useState<AlunoResponse[]>([]);
   const [provas, setProvas] = useState<ProvaResponse[]>([]);
   const [colecoes, setColecoes] = useState<ColecaoResponse[]>([]);
+  const [resumo, setResumo] = useState<TurmaResumoResponse | null>(null);
   const [availableStudents, setAvailableStudents] = useState<AlunoResponse[]>([]);
   const [activeTab, setActiveTab] = useState<"alunos" | "provas" | "flashcards">("alunos");
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,9 +55,10 @@ export default function TurmaDetalhes() {
     setError(null);
 
     try {
-      const [nextTurma, nextAlunos] = await Promise.all([
+      const [nextTurma, nextAlunos, nextResumo] = await Promise.all([
         turmaService.getById(id),
         turmaService.listStudents(id),
+        turmaService.getResumo(id),
       ]);
       const [nextProvas, nextColecoes] = await Promise.all([
         provaService.listar(),
@@ -64,6 +66,7 @@ export default function TurmaDetalhes() {
       ]);
       setTurma(nextTurma);
       setAlunos(nextAlunos);
+      setResumo(nextResumo);
       setProvas(nextProvas.filter((prova) => prova.turmaId === id));
       setColecoes(nextColecoes.filter((colecao) => colecao.turmaNome === nextTurma.nome));
     } catch (nextError) {
@@ -121,7 +124,7 @@ export default function TurmaDetalhes() {
 
     try {
       await turmaService.unenrollStudent(id, alunoId);
-      setAlunos((current) => current.filter((aluno) => aluno.id !== alunoId));
+      await loadTurma();
     } catch (nextError) {
       setError(extractHttpErrorMessage(nextError, "Nao foi possivel remover a matricula."));
     }
@@ -139,6 +142,10 @@ export default function TurmaDetalhes() {
         || aluno.matricula.toLowerCase().includes(term),
     );
   }, [alunos, searchTerm]);
+
+  const desempenhoPorAluno = useMemo(() => {
+    return new Map((resumo?.alunos ?? []).map((item) => [item.alunoId, item]));
+  }, [resumo]);
 
   const tabs = [
     { key: "alunos" as const, label: "Alunos", icon: Users, count: alunos.length },
@@ -203,7 +210,9 @@ export default function TurmaDetalhes() {
               <TrendingUp size={18} className="text-[var(--color-success)]" />
             </div>
             <div>
-              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>--</p>
+              <p className="text-[1.25rem] text-[var(--color-neutral-900)]" style={{ fontWeight: 700 }}>
+                {resumo?.mediaNota == null ? "--" : resumo.mediaNota.toFixed(1)}
+              </p>
               <p className="text-[12px] text-[var(--color-neutral-400)]">Média da turma</p>
             </div>
           </div>
@@ -311,7 +320,12 @@ export default function TurmaDetalhes() {
                 <tbody>
                   {filteredAlunos.length === 0 ? (
                     <tr><td colSpan={6} className="px-5 py-6 text-sm text-[var(--color-neutral-500)]">Nenhum aluno matriculado encontrado.</td></tr>
-                  ) : filteredAlunos.map((aluno) => (
+                  ) : filteredAlunos.map((aluno) => {
+                    const desempenho = desempenhoPorAluno.get(aluno.id);
+                    const totalRespondidas = desempenho?.totalRespostas ?? 0;
+                    const totalProvas = resumo?.totalProvasPublicadas ?? provas.filter((prova) => prova.status === "PUBLICADA").length;
+
+                    return (
                     <tr key={aluno.id} className="border-b border-[var(--color-neutral-100)] last:border-b-0 hover:bg-[var(--color-neutral-50)] transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
@@ -326,20 +340,22 @@ export default function TurmaDetalhes() {
                       </td>
                       <td className="px-5 py-3.5 text-[13px] text-[var(--color-neutral-600)]">{aluno.matricula}</td>
                       <td className="px-5 py-3.5 text-center">
-                        <span className="text-[14px] text-[var(--color-neutral-400)]" style={{ fontWeight: 700 }}>--</span>
+                        <span className={`text-[14px] ${desempenho?.mediaNota == null ? "text-[var(--color-neutral-400)]" : "text-[var(--color-neutral-900)]"}`} style={{ fontWeight: 700 }}>
+                          {desempenho?.mediaNota == null ? "--" : desempenho.mediaNota.toFixed(1)}
+                        </span>
                       </td>
                       <td className="px-5 py-3.5 text-center text-[13px] text-[var(--color-neutral-600)]">
-                        --
+                        {totalRespondidas}/{totalProvas}
                       </td>
                       <td className="px-5 py-3.5 text-center"><Badge variant={aluno.active ? "success" : "neutral"} size="sm">{aluno.active ? "Ativo" : "Inativo"}</Badge></td>
                       <td className="px-5 py-3.5 text-right">
-                        {/* TROCAR O ICONE DESSE BOTAO */}
-                        <button type="button" title="Remover matricula" className="p-1.5 hover:bg-[var(--color-neutral-100)] rounded-[var(--border-radius)] transition-colors" onClick={() => void unenrollStudent(aluno.id)}>
-                          <MoreVertical size={14} className="text-[var(--color-neutral-400)]" />
+                        <button type="button" title="Remover matricula" className="p-1.5 hover:bg-[var(--color-error-surface)] rounded-[var(--border-radius)] transition-colors" onClick={() => void unenrollStudent(aluno.id)}>
+                          <Trash2 size={14} className="text-[var(--color-error)]" />
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

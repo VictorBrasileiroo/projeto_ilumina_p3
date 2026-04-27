@@ -4,6 +4,7 @@ import type {
   AlunoResponse,
   CreateTurmaRequest,
   TurmaResponse,
+  TurmaResumoResponse,
   UpdateTurmaRequest,
 } from "../types/school";
 
@@ -42,6 +43,10 @@ export const turmaService = {
 
   async listStudents(id: string): Promise<AlunoResponse[]> {
     return unwrap(await httpRequest<ApiResponse<AlunoResponse[]>>(`turmas/${id}/matriculas`));
+  },
+
+  async getResumo(id: string): Promise<TurmaResumoResponse> {
+    return unwrap(await httpRequest<ApiResponse<TurmaResumoResponse>>(`turmas/${id}/resumo`));
   },
 
   async listAvailableStudents(id: string, query: string): Promise<AlunoResponse[]> {

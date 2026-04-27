@@ -5,6 +5,7 @@ import br.com.ilumina.dto.turma.CreateTurmaRequest;
 import br.com.ilumina.dto.turma.TurmaProfessorResponse;
 import br.com.ilumina.dto.turma.TurmaResponse;
 import br.com.ilumina.dto.turma.TurmaResumoResponse;
+import br.com.ilumina.dto.turma.TurmaResumoResponse.DesempenhoAlunoItem;
 import br.com.ilumina.dto.turma.TurmaResumoResponse.MediaPorProvaItem;
 import br.com.ilumina.dto.turma.UpdateTurmaRequest;
 import br.com.ilumina.entity.Aluno.Aluno;
@@ -36,6 +37,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -388,20 +390,23 @@ public class TurmaService {
         validateTurmaAccess(turmaId, currentUserEmail, isAdmin);
 
         List<Prova> provas = provaRepository.findByTurmaIdAndStatus(turmaId, StatusProva.PUBLICADA);
-        int totalAlunos = (int) alunoTurmaRepository.findByTurma_IdOrderByCreatedAtAsc(turmaId).stream().count();
+        List<AlunoTurma> vinculos = alunoTurmaRepository.findByTurma_IdOrderByCreatedAtAsc(turmaId);
+        int totalAlunos = vinculos.size();
+
+        Set<UUID> alunoIdsAtuais = vinculos.stream()
+                .map(vinculo -> vinculo.getAluno().getId())
+                .collect(Collectors.toSet());
 
         List<UUID> provaIds = provas.stream().map(Prova::getId).toList();
-        List<RespostaAluno> todasRespostas = provaIds.isEmpty()
+        List<RespostaAluno> todasRespostas = provaIds.isEmpty() || alunoIdsAtuais.isEmpty()
                 ? List.of()
-                : respostaAlunoRepository.findByProva_IdIn(provaIds);
+                : respostaAlunoRepository.findByProva_IdIn(provaIds).stream()
+                        .filter(resposta -> alunoIdsAtuais.contains(resposta.getAluno().getId()))
+                        .toList();
 
         int totalRespostas = todasRespostas.size();
 
-        BigDecimal mediaNota = todasRespostas.isEmpty() ? null
-                : todasRespostas.stream()
-                        .map(RespostaAluno::getNotaFinal)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                        .divide(BigDecimal.valueOf(totalRespostas), 2, RoundingMode.HALF_UP);
+        BigDecimal mediaNota = mediaNormalizada(todasRespostas);
 
         Map<UUID, List<RespostaAluno>> respostasPorProva = todasRespostas.stream()
                 .collect(Collectors.groupingBy(r -> r.getProva().getId()));
@@ -410,14 +415,25 @@ public class TurmaService {
                 .map(prova -> {
                     List<RespostaAluno> provaRespostas = respostasPorProva.getOrDefault(prova.getId(), List.of());
                     int provaTotal = provaRespostas.size();
-                    BigDecimal provaMedia = provaRespostas.isEmpty() ? null
-                            : provaRespostas.stream()
-                                    .map(RespostaAluno::getNotaFinal)
-                                    .reduce(BigDecimal.ZERO, BigDecimal::add)
-                                    .divide(BigDecimal.valueOf(provaTotal), 2, RoundingMode.HALF_UP);
+                    BigDecimal provaMedia = mediaNormalizada(provaRespostas);
                     return new MediaPorProvaItem(prova.getId(), prova.getTitulo(), prova.getDisciplina(), provaTotal, provaMedia);
                 })
                 .sorted(Comparator.comparing(MediaPorProvaItem::titulo))
+                .toList();
+
+        Map<UUID, List<RespostaAluno>> respostasPorAluno = todasRespostas.stream()
+                .collect(Collectors.groupingBy(r -> r.getAluno().getId()));
+
+        List<DesempenhoAlunoItem> alunos = vinculos.stream()
+                .map(vinculo -> {
+                    UUID alunoId = vinculo.getAluno().getId();
+                    List<RespostaAluno> alunoRespostas = respostasPorAluno.getOrDefault(alunoId, List.of());
+                    return new DesempenhoAlunoItem(
+                            alunoId,
+                            alunoRespostas.size(),
+                            mediaNormalizada(alunoRespostas)
+                    );
+                })
                 .toList();
 
         return new TurmaResumoResponse(
@@ -427,8 +443,30 @@ public class TurmaService {
                 provas.size(),
                 totalRespostas,
                 mediaNota,
-                mediasPorProva
+                mediasPorProva,
+                alunos
         );
+    }
+
+    private BigDecimal mediaNormalizada(List<RespostaAluno> respostas) {
+        if (respostas.isEmpty()) {
+            return null;
+        }
+
+        return respostas.stream()
+                .map(this::notaNormalizada)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(respostas.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal notaNormalizada(RespostaAluno resposta) {
+        if (resposta.getTotalQuestoes() <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        return BigDecimal.valueOf(resposta.getTotalAcertos())
+                .multiply(BigDecimal.TEN)
+                .divide(BigDecimal.valueOf(resposta.getTotalQuestoes()), 2, RoundingMode.HALF_UP);
     }
 
     @Transactional(readOnly = true)

@@ -88,3 +88,81 @@ export interface GerarQuestoesRequest {
   tema: string;
   quantidade?: number;
 }
+
+export interface ProvaAlunoResponse {
+  id: string;
+  titulo: string;
+  disciplina: string | null;
+  createdAt: string;
+  turmaNome: string;
+  totalQuestoes: number;
+  jaRespondeu: boolean;
+}
+
+export interface AlternativaAlunoResponse {
+  id: string;
+  letra: AlternativaLetra;
+  texto: string;
+}
+
+export interface QuestaoAlunoResponse {
+  id: string;
+  enunciado: string;
+  ordem: number;
+  alternativas: AlternativaAlunoResponse[];
+}
+
+export interface ProvaDetalheAlunoResponse {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  disciplina: string | null;
+  turmaId: string;
+  turmaNome: string;
+  totalQuestoes: number;
+  questoes: QuestaoAlunoResponse[];
+  createdAt: string;
+}
+
+export interface RespostaItemRequest {
+  questaoId: string;
+  letraEscolhida: AlternativaLetra;
+}
+
+export interface SubmissaoRespostasRequest {
+  respostas: RespostaItemRequest[];
+}
+
+export interface QuestaoResultadoResponse {
+  questaoId: string;
+  enunciado: string;
+  letraEscolhida: AlternativaLetra;
+  gabarito: AlternativaLetra;
+  acertou: boolean;
+  pontuacao: number;
+}
+
+export interface ResultadoProvaResponse {
+  provaId: string;
+  provaTitle: string;
+  totalQuestoes: number;
+  totalAcertos: number;
+  notaFinal: number;
+  respondidoEm: string;
+  questoes: QuestaoResultadoResponse[];
+}
+
+export interface AlunoProvaResumoPorDisciplinaItem {
+  disciplina: string;
+  totalProvas: number;
+  totalRespondidas: number;
+  mediaNota: number | null;
+}
+
+export interface AlunoProvaResumoResponse {
+  totalProvas: number;
+  totalRespondidas: number;
+  totalPendentes: number;
+  mediaNota: number | null;
+  porDisciplina: AlunoProvaResumoPorDisciplinaItem[];
+}

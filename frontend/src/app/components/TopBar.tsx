@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, HelpCircle, LogOut, Menu, Search, Settings, User } from "lucide-react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { ChevronRight, HelpCircle, LogOut, Menu, Settings, User } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface TopBarProps {
   userName: string;
@@ -24,7 +25,7 @@ const breadcrumbMap: Record<string, string> = {
 function getBreadcrumbs(pathname: string) {
   const parts = pathname.split('/').filter(Boolean);
   const crumbs: { label: string; path: string }[] = [];
-  
+
   // Root
   const base = '/' + parts[0];
   crumbs.push({ label: parts[0] === 'professor' ? 'Professor' : 'Aluno', path: base });
@@ -52,11 +53,8 @@ export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const searchQuery = searchParams.get('q') ?? '';
 
   const breadcrumbs = getBreadcrumbs(location.pathname);
 
@@ -118,22 +116,9 @@ export function TopBar({ userName, userRole, onToggleSidebar }: TopBarProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-1 shrink-0">
-          {/* Search - desktop only */}
-          <div className="hidden md:block relative w-48 lg:w-56">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-neutral-400)]" />
-            <input
-              type="text"
-              placeholder="Buscar..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchParams((prev) => {
-                  if (e.target.value) prev.set('q', e.target.value);
-                  else prev.delete('q');
-                  return prev;
-                });
-              }}
-              className="w-full pl-9 pr-4 py-[6px] text-sm bg-[var(--color-neutral-50)] border border-[var(--color-neutral-100)] rounded-[var(--border-radius)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)] focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-neutral-400)]"
-            />
+          {/* Global search - desktop only */}
+          <div className="hidden md:block">
+            <GlobalSearch />
           </div>
 
           {/* Help */}

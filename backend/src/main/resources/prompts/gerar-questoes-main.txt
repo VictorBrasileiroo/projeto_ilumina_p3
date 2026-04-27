@@ -35,6 +35,14 @@ REGRAS DE CONTEÚDO — OBRIGATÓRIAS:
 - O campo "ordem" deve ser um inteiro sequencial: a primeira questão recebe 1, a segunda 2, e assim por diante até {{QUANTIDADE}}.
 - O campo "pontuacao" deve sempre ser o número 1.0.
 
+REGRA CRÍTICA — DISTRIBUIÇÃO DO GABARITO:
+- A letra correta (campo "gabarito") DEVE variar de forma equilibrada e imprevisível entre A, B, C e D ao longo das {{QUANTIDADE}} questões.
+- É PROIBIDO usar padrão sequencial mecânico como A,B,C,D,A,B,C,D,A,B,C,D ou A,A,B,B,C,C,D,D ou qualquer ciclo previsível.
+- É PROIBIDO concentrar o gabarito em uma única letra (ex.: todas as questões com gabarito B).
+- A frequência de cada letra como gabarito deve ser aproximadamente igual no conjunto: cada letra deve aparecer em torno de {{QUANTIDADE}}/4 vezes, sem ordem previsível.
+- Decida a letra do gabarito de cada questão de forma genuinamente aleatória, levando em conta apenas qual das 4 alternativas é factualmente correta — e, se necessário, reorganize o conteúdo das alternativas para que a alternativa correta caia em letras diferentes ao longo da prova.
+- Antes de finalizar, releia os gabaritos das questões geradas e, se notar qualquer padrão sequencial ou concentração em uma letra, redistribua antes de responder.
+
 REGRAS DE QUALIDADE PEDAGÓGICA:
 - Use linguagem clara, objetiva e adequada ao nível escolar.
 - As alternativas incorretas (distratores) devem ser plausíveis — não absurdas nem obviamente erradas.
@@ -48,5 +56,6 @@ VERIFICAÇÃO FINAL ANTES DE RESPONDER:
 - Cada questão tem gabarito igual a A, B, C ou D e esse gabarito existe nas alternativas?
 - Todos os campos "texto" das alternativas estão preenchidos?
 - Nenhum enunciado foi repetido?
+- Os gabaritos estão distribuídos de forma equilibrada e imprevisível entre A, B, C e D, sem padrão sequencial nem concentração em uma única letra?
 
 Se todas as verificações passarem, envie o JSON. Se não, corrija antes de enviar.

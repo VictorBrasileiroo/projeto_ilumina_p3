@@ -5,6 +5,7 @@ import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { Badge } from "../../components/Badge";
 import { FlashcardEditor } from "../../components/FlashcardEditor";
+import { AutoResizeTextarea } from "../../components/AutoResizeTextarea";
 import { ConfirmarPublicacaoDialog } from "../../components/professor/ConfirmarPublicacaoDialog";
 import { extractHttpErrorMessage, HttpError } from "../../lib/http";
 import { colecaoService } from "../../services/colecaoService";
@@ -439,22 +440,20 @@ export default function FlashcardDetalhes() {
           <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[13px] text-[var(--color-neutral-700)]" style={{ fontWeight: 600 }}>Frente</label>
-              <input
-                type="text"
+              <AutoResizeTextarea
                 value={newCard.frente}
                 onChange={(event) => setNewCard({ ...newCard, frente: event.target.value })}
                 placeholder="Pergunta ou termo"
-                className="w-full rounded-[var(--border-radius)] border border-[var(--color-neutral-200)] px-3 py-[7px] text-sm transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)]"
+                className="w-full rounded-[var(--border-radius)] border border-[var(--color-neutral-200)] px-3 py-[7px] text-sm leading-relaxed transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)]"
               />
             </div>
             <div>
               <label className="mb-1.5 block text-[13px] text-[var(--color-neutral-700)]" style={{ fontWeight: 600 }}>Verso</label>
-              <input
-                type="text"
+              <AutoResizeTextarea
                 value={newCard.verso}
                 onChange={(event) => setNewCard({ ...newCard, verso: event.target.value })}
                 placeholder="Resposta ou explicacao"
-                className="w-full rounded-[var(--border-radius)] border border-[var(--color-neutral-200)] px-3 py-[7px] text-sm transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)]"
+                className="w-full rounded-[var(--border-radius)] border border-[var(--color-neutral-200)] px-3 py-[7px] text-sm leading-relaxed transition-all focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-lighten-02)]"
               />
             </div>
           </div>

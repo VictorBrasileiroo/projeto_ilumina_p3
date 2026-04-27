@@ -81,3 +81,28 @@ export interface CreateTurmaRequest {
 }
 
 export type UpdateTurmaRequest = Partial<CreateTurmaRequest>;
+
+export interface TurmaResumoMediaPorProvaItem {
+  provaId: string;
+  titulo: string;
+  disciplina: string | null;
+  totalRespostas: number;
+  mediaNota: number | null;
+}
+
+export interface TurmaResumoAlunoItem {
+  alunoId: string;
+  totalRespostas: number;
+  mediaNota: number | null;
+}
+
+export interface TurmaResumoResponse {
+  turmaId: string;
+  turmaNome: string;
+  totalAlunos: number;
+  totalProvasPublicadas: number;
+  totalRespostas: number;
+  mediaNota: number | null;
+  mediasPorProva: TurmaResumoMediaPorProvaItem[];
+  alunos: TurmaResumoAlunoItem[];
+}

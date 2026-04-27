@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import { RequireAuth } from "./components/RequireAuth";
+import { RequireTurma } from "./components/RequireTurma";
 import { ALUNO_AREA_ROLES, PROFESSOR_AREA_ROLES } from "./lib/constants";
 import SemPermissao from "./pages/SemPermissao";
 import Login from "./pages/Login";
@@ -18,6 +19,7 @@ import AlunoProva from "./pages/aluno/Prova";
 import AlunoResultado from "./pages/aluno/Resultado";
 import AlunoFlashcardsList from "./pages/aluno/FlashcardsList";
 import AlunoFlashcards from "./pages/aluno/Flashcards";
+import AlunoSemTurma from "./pages/aluno/SemTurma";
 import ProfessorLayout from "./layouts/ProfessorLayout";
 import AlunoLayout from "./layouts/AlunoLayout";
 
@@ -61,10 +63,20 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/aluno/sem-turma",
+    element: (
+      <RequireAuth allowedRoles={ALUNO_AREA_ROLES}>
+        <AlunoSemTurma />
+      </RequireAuth>
+    ),
+  },
+  {
     path: "/aluno",
     element: (
       <RequireAuth allowedRoles={ALUNO_AREA_ROLES}>
-        <AlunoLayout />
+        <RequireTurma>
+          <AlunoLayout />
+        </RequireTurma>
       </RequireAuth>
     ),
     children: [

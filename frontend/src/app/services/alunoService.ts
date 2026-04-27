@@ -3,7 +3,7 @@ import { mapAuthResponseToSession } from "../lib/mappings";
 import { setAuthSession } from "../lib/storage";
 import type { AuthSession } from "../types/auth";
 import type { ApiResponse } from "../types/shared";
-import type { CreateAlunoRequest, CreateAlunoResponse } from "../types/school";
+import type { CreateAlunoRequest, CreateAlunoResponse, TurmaResponse } from "../types/school";
 
 export const alunoService = {
   async register(request: CreateAlunoRequest): Promise<AuthSession> {
@@ -30,5 +30,10 @@ export const alunoService = {
     invalidateAuthState();
     setAuthSession(session);
     return session;
+  },
+
+  async listMyTurmas(alunoId: string): Promise<TurmaResponse[]> {
+    const response = await httpRequest<ApiResponse<TurmaResponse[]>>(`aluno/${alunoId}/turmas`);
+    return response.data;
   },
 };
