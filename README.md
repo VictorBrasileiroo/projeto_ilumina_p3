@@ -10,6 +10,54 @@ Plataforma educacional para criacao e publicacao de avaliacoes e colecoes de fla
 
 ---
 
+## Acesso à aplicação
+
+A aplicação está hospedada e pronta para uso. **Não é necessário rodar nada localmente para avaliar o sistema.**
+
+| Recurso | URL |
+|---|---|
+| Aplicação (frontend) | https://ilumina-frontend.vercel.app |
+| API (backend) | https://ilumina-backend.onrender.com |
+| Health check | https://ilumina-backend.onrender.com/actuator/health |
+| Documentação da API (Swagger) | https://ilumina-backend.onrender.com/swagger-ui.html |
+
+### Aviso sobre o primeiro acesso (cold start)
+
+O backend está hospedado no plano gratuito do Render, que **hiberna após 15 minutos de inatividade**. Isso significa que:
+
+- A **primeira requisição** após um período de inatividade pode demorar **30 a 60 segundos** enquanto o serviço acorda (ex: ao tentar fazer login pela primeira vez)
+- As requisições seguintes são instantâneas
+- Sugestão prática: antes de testar, abra https://ilumina-backend.onrender.com/actuator/health em uma aba e aguarde retornar `{"status":"UP"}`. Isso "acorda" o backend e os próximos cliques na aplicação serão fluidos.
+
+---
+
+## Fluxos sugeridos para avaliação
+
+### Fluxo 1 — Como Professor
+
+1. Acesse https://ilumina-frontend.vercel.app
+2. Na tela de login, clique em **Cadastre-se** e escolha o perfil **Professor**
+3. Preencha os dados e crie a conta
+4. Faça login
+5. No dashboard do professor:
+   - Crie uma turma
+   - Crie uma coleção de flashcards
+   - **Use a geração via LLM (Gemini)** para gerar flashcards a partir de um tema
+   - Crie uma prova com questões manuais
+   - Convide alunos copiando o link público da turma
+
+### Fluxo 2 — Como Aluno
+
+1. Acesse https://ilumina-frontend.vercel.app
+2. Cadastre-se como **Aluno** (ou use o link público de uma turma)
+3. Faça login
+4. No dashboard do aluno:
+   - Acesse uma coleção de flashcards e estude
+   - Responda uma prova publicada pelo professor
+   - Veja seu resultado e gabarito
+
+---
+
 ## 1. Estado atual do produto
 
 ### 1.1 Modulos
@@ -44,15 +92,25 @@ Plataforma educacional para criacao e publicacao de avaliacoes e colecoes de fla
 - Spring Boot 3.5.x
 - Spring Security (JWT)
 - Spring Data JPA / Hibernate
-- Banco relacional (perfil de teste com H2)
+- PostgreSQL (Neon em produção, perfil de teste com H2)
 - Padrao de resposta: `ApiResponse<T>`
 
 ### 2.2 Frontend
 
+- React 18
 - Vite
 - TypeScript
+- Tailwind CSS
+- React Router 7
 
-### 2.3 Padroes arquiteturais
+### 2.3 Hospedagem (produção)
+
+- **Frontend:** Vercel
+- **Backend:** Render (Web Service via Docker)
+- **Banco:** Neon (PostgreSQL gerenciado)
+- **LLM:** Google Gemini API (`gemini-2.5-flash-lite`)
+
+### 2.4 Padroes arquiteturais
 
 - Arquitetura em camadas (`controller -> service -> repository`).
 - Regras de negocio concentradas em service.
@@ -61,14 +119,24 @@ Plataforma educacional para criacao e publicacao de avaliacoes e colecoes de fla
 
 ---
 
-## 3. Como executar
+## 3. Como executar localmente (desenvolvimento)
+
+> Esta seção é necessária apenas para desenvolvimento local. Para avaliar o sistema, use a aplicação no ar (link na seção "Acesso à aplicação" acima).
+
+### 3.0 Pré-requisitos
+
+- Java 21 (JDK)
+- Node.js 18+ e npm
+- Docker (para subir Postgres local)
+- Arquivo `backend/.env` com credenciais locais e chave da API Gemini
 
 ### 3.1 Backend
 
 Na pasta `backend`:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+docker compose up -d            # sobe Postgres em localhost:5432
+.\mvnw.cmd spring-boot:run      # backend em localhost:8080
 ```
 
 Para testes:
@@ -83,7 +151,13 @@ Na pasta `frontend`:
 
 ```powershell
 npm install
-npm run dev
+npm run dev                     # frontend em localhost:5173
+```
+
+Por padrão o frontend local aponta para `http://localhost:8080/api/v1`. Para apontar para o backend hospedado, crie um arquivo `frontend/.env.local` com:
+
+```
+VITE_API_URL=https://ilumina-backend.onrender.com/api/v1
 ```
 
 ---
@@ -101,4 +175,3 @@ Pontos de entrada principais:
 - Trilha por etapas Flashcards: `docs/etapas/2026-04-19-11-modulo-flashcards-trilha-unica.md`
 
 ---
-
