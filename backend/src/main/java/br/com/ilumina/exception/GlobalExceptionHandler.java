@@ -48,6 +48,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
     }
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimitExceededException(
+            RateLimitExceededException ex,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Void> response = ApiResponse.error(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                ex.getMessage(),
+                List.of(ex.getMessage()),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+    }
+
+    @ExceptionHandler(LlmUnavailableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleLlmUnavailableException(
+            LlmUnavailableException ex,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Void> response = ApiResponse.error(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                ex.getMessage(),
+                List.of(ex.getMessage()),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(
             MethodArgumentNotValidException ex,

@@ -1,77 +1,75 @@
-# Guia de Documentacao 
+# Guia de Documentacao
 
-Este README explica o que existe em cada pasta de `docs/` e onde encontrar os documentos mais importantes do projeto.
+Data de atualizacao: 2026-04-21
+
+Este arquivo centraliza a navegacao da pasta docs e reflete o contexto atual do projeto.
 
 ## 1. Estrutura de pastas
 
-| Pasta | O que voce encontra aqui |
+| Pasta | Conteudo principal |
 |---|---|
-| `docs/arquitetura` | estado atual do sistema, decisoes arquiteturais e visao tecnica macro |
-| `docs/features` | documentacao por feature/modulo (contratos, uso, endpoint, escopo) |
-| `docs/etapas` | historico passo a passo do que foi implementado em cada etapa tecnica |
-| `docs/guias` | guias de processo de time (branches, PR, padroes de trabalho) |
-| `docs/api` | espaco reservado para documentacao de API mais detalhada por dominio |
-| `docs/diagramas` | espaco para diagramas (ERD, fluxo, sequencia, etc.) |
-| `docs/atas` | atas e registros de reunioes tecnicas/produto |
+| docs/arquitetura | snapshots tecnicos, decisoes arquiteturais e estado consolidado por modulo |
+| docs/features | visao funcional por modulo/feature |
+| docs/api | contratos HTTP para integracao frontend/backend |
+| docs/etapas | historico de execucao tecnica por etapa |
+| docs/planejamento | guias de implementacao e planejamento por trilha |
+| docs/guias | guias operacionais de time e engenharia |
+| docs/lembretes | lembretes tecnicos e notas de curto prazo |
+| docs/atas | registros de reuniao e decisoes operacionais |
+| docs/diagramas | inventario e convencoes de diagramas |
 
-## 2. Documentos principais no estado atual
+## 2. Estado funcional consolidado
 
-Arquitetura:
-- `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md` (snapshot mais recente)
-- `docs/arquitetura/2026-04-04-decisao-modelagem-user-professor-aluno.md` (decisao canonica de modelagem)
+- Auth JWT: concluido.
+- Professor/Turma/Aluno/Matriculas: concluido.
+- Avaliacoes (blocos 1-4): concluido.
+- Flashcards:
+  - Bloco 1 (fundacao): concluido
+  - Bloco 2 (API professor/admin): concluido
+  - Bloco 3 (geracao LLM): concluido
+  - Bloco 4 (API aluno): concluido
 
-Feature de Professor:
-- `docs/features/2026-04-05-feature-modulo-professor-crud-inicial.md`
+## 3. Documentos prioritarios por modulo
 
-Feature de Turma:
-- `docs/features/2026-04-05-feature-modulo-turma-crud-v1.md`
+### Arquitetura
+- docs/arquitetura/2026-04-21-estado-atual-do-sistema-consolidado.md
+- docs/arquitetura/2026-04-19-estado-atual-do-sistema-modulo-flashcards-geral.md
+- docs/arquitetura/2026-04-13-estado-atual-do-sistema-modulo-avaliacoes-geral.md
+- docs/arquitetura/2026-04-07-estado-atual-do-sistema-modulo-aluno-turma.md
+- docs/arquitetura/2026-04-05-estado-atual-do-sistema.md
 
-Feature de JWT (refresh + claims):
-- `docs/features/2026-04-05-feature-jwt-refresh-claims.md`
+### API
+- docs/api/2026-04-19-api-modulo-flashcards-unificado.md
+- docs/api/2026-04-13-api-modulo-avaliacoes-unificado.md
+- docs/api/2026-04-07-api-modulo-aluno-turma-matriculas.md
+- docs/api/2026-04-05-api-modulo-professor.md
+- docs/api/2026-04-05-api-modulo-turma.md
+- docs/api/2026-04-05-api-auth-jwt-refresh-claims.md
 
-API do modulo de Professor:
-- `docs/api/2026-04-05-api-modulo-professor.md`
+### Features
+- docs/features/2026-04-19-feature-modulo-flashcards-unificada.md
+- docs/features/2026-04-13-feature-modulo-avaliacoes-unificada.md
+- docs/features/2026-04-07-feature-modulo-aluno-turma-matriculas.md
+- docs/features/2026-04-05-feature-modulo-professor-crud-inicial.md
+- docs/features/2026-04-05-feature-modulo-turma-crud-v1.md
 
-API do modulo de Turma:
-- `docs/api/2026-04-05-api-modulo-turma.md`
+### Execucao historica
+- docs/etapas/2026-04-21-13-modulo-flashcards-bloco-4-aluno.md
+- docs/etapas/2026-04-20-12-modulo-flashcards-bloco-3-geracao-llm.md
+- docs/etapas/2026-04-19-11-modulo-flashcards-trilha-unica.md
+- docs/etapas/2026-04-09-10-modulo-avaliacoes-bloco-3-geracao-llm.md
 
-API de autenticacao (JWT):
-- `docs/api/2026-04-05-api-auth-jwt-refresh-claims.md`
+## 4. Pastas de apoio
 
-Historico de implementacao:
-- `docs/etapas/2026-03-24-01-seguranca-cors-health-apiresponse.md`
-- `docs/etapas/2026-03-25-02-modelo-usuario-auditoria-repositorios.md`
-- `docs/etapas/2026-03-25-03-seguranca-jwt-autenticacao.md`
-- `docs/etapas/2026-04-05-04-modulo-professor-crud-inicial.md`
-- `docs/etapas/2026-04-05-05-evolucao-jwt-refresh-claims.md`
-- `docs/etapas/2026-04-05-06-modulo-turma-crud-v1.md`
+- docs/atas/README.md: template e convencoes para atas.
+- docs/diagramas/README.md: padrao de nomeacao e checklist para diagramas.
 
-Guias de processo:
-- `docs/guias/01.Guia-Branches.md`
-- `docs/guias/02.Template-PR.md`
-- `docs/guias/03.Bloqueio-Páginas.md`
-- `docs/guias/04.Guia-Tokens-Refresh-Claims.md`
+## 5. Convencoes de manutencao
 
-## 3. Como navegar rapido
-
-Se voce quer entender o sistema hoje:
-1. Leia `docs/arquitetura/2026-04-05-estado-atual-do-sistema.md`.
-2. Leia a feature alvo em `docs/features/`.
-3. Consulte `docs/etapas/` para entender o historico de implementacao.
-
-Se voce vai implementar algo novo:
-1. Confirme decisoes em `docs/arquitetura/`.
-2. Registre a feature em `docs/features/`.
-3. Registre a execucao em `docs/etapas/`.
-
-## 4. Convencao de nomes recomendada
-
-Padrao sugerido para novos arquivos:
-- arquitetura: `YYYY-MM-DD-<tema>.md`
-- features: `YYYY-MM-DD-feature-<modulo>.md`
-- etapas: `YYYY-MM-DD-<ordem>-<tema>.md`
-
-Exemplos:
-- `2026-04-05-estado-atual-do-sistema.md`
-- `2026-04-05-feature-modulo-professor-crud-inicial.md`
-- `2026-04-05-04-modulo-professor-crud-inicial.md`
+1. Ao concluir um bloco tecnico, atualizar obrigatoriamente:
+   - docs/api do modulo
+   - docs/features do modulo
+   - docs/arquitetura do modulo
+   - docs/etapas (registro da execucao)
+2. Em mudancas de contrato HTTP, atualizar exemplos de request/response e matriz de erros no mesmo dia.
+3. Em mudancas de status de modulo, refletir aqui no docs/README e no README da raiz.

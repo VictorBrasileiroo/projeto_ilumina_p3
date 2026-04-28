@@ -3,9 +3,11 @@ package br.com.ilumina.service.Auth;
 import br.com.ilumina.dto.auth.AuthResponse;
 import br.com.ilumina.dto.auth.LoginRequest;
 import br.com.ilumina.dto.auth.RegisterRequest;
+import br.com.ilumina.entity.Aluno.Aluno;
 import br.com.ilumina.entity.Professor.Professor;
 import br.com.ilumina.entity.User.User;
 import br.com.ilumina.entity.User.UserRole;
+import br.com.ilumina.repository.Aluno.AlunoRepository;
 import br.com.ilumina.repository.Professor.ProfessorRepository;
 import br.com.ilumina.repository.User.RoleRepository;
 import br.com.ilumina.repository.User.UserRepository;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class AuthSeervice {
 
     private final UserRepository userRepository;
+    private final AlunoRepository alunoRepository;
     private final ProfessorRepository professorRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -32,6 +35,7 @@ public class AuthSeervice {
 
     public AuthSeervice(
             UserRepository userRepository,
+            AlunoRepository alunoRepository,
             ProfessorRepository professorRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
@@ -39,6 +43,7 @@ public class AuthSeervice {
             JwtTokenService jwtTokenService
     ) {
         this.userRepository = userRepository;
+        this.alunoRepository = alunoRepository;
         this.professorRepository = professorRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -114,7 +119,7 @@ public class AuthSeervice {
                 .collect(java.util.stream.Collectors.toSet());
 
         UUID professorId = resolveProfessorId(user.getId());
-        UUID alunoId = null;
+        UUID alunoId = resolveAlunoId(user.getId());
 
         String accessToken = jwtTokenService.generateAccessToken(
                 user.getEmail(),
@@ -142,6 +147,12 @@ public class AuthSeervice {
     private UUID resolveProfessorId(UUID userId) {
         return professorRepository.findByUserId(userId)
                 .map(Professor::getId)
+                .orElse(null);
+    }
+
+    private UUID resolveAlunoId(UUID userId) {
+        return alunoRepository.findByUserId(userId)
+                .map(Aluno::getId)
                 .orElse(null);
     }
 
