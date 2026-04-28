@@ -1,8 +1,12 @@
-# Ilumina
+# Ilumina — Documentação Técnica de Projeto
+
+<img src='https://raw.githubusercontent.com/VictorBrasileiroo/projeto_ilumina_p3/refs/heads/develop/frontend/src/imports/banner.png'></img>
 
 Plataforma educacional para criacao e publicacao de avaliacoes e colecoes de flashcards com apoio de LLM.
 
-Status geral: em desenvolvimento ativo.
+- **Status:** Em andamento — Mês 4 de 6
+- **Fase atual:** Fase 1 — AB1
+- **Versão do documento:** 2.0 · 2026
 
 ---
 
@@ -98,23 +102,3 @@ Pontos de entrada principais:
 
 ---
 
-## 5. Testes e qualidade
-
-Evidencias recentes consolidadas do modulo Flashcards BLOCO 3:
-
-- `LlmValidationServiceTest`
-- `FlashcardControllerIntegrationTest`
-- `ProvaControllerIntegrationTest`
-
-Resultado da suite alvo mais recente:
-- 94 testes executados
-- 0 falhas
-- 0 erros
-
----
-
-## 6. Proximos passos
-
-1. Implementar BLOCO 4 de Flashcards (consumo por aluno).
-2. Revisar riscos residuais de concorrencia na ordem de cards (`max(ordem)+1`).
-3. Evoluir observabilidade e resiliencia no fluxo LLM quando necessario.
